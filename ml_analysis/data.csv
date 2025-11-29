@@ -1,0 +1,180 @@
+prompt,task_type
+"Write a Python function that parses JSON logs.",code_task
+"Fix this JavaScript function that throws a TypeError.",code_task
+"Refactor this Python code to improve readability.",code_task
+"Generate unit tests for this Python function.",code_task
+"Convert this SQL query into a Python Pandas function.",code_task
+"Write a Python script to merge two CSV files.",code_task
+"Refactor this Bash script for better readability.",code_task
+"Generate a function to validate email addresses.",code_task
+"Write a function that sorts a list of dictionaries by a key.",code_task
+"Generate unit tests for this Java class.",code_task
+"Write a function to remove duplicates from a list.",code_task
+"Refactor this Java method to follow clean code principles.",code_task
+"Generate test cases for this JavaScript function.",code_task
+"Write a Python function that calculates factorial recursively.",code_task
+"Write a function to convert XML data into JSON.",code_task
+"Summarize this Jira ticket into one sentence.",text_summarization
+"Summarize the meeting notes from yesterday.",text_summarization
+"Create a short summary of this internal wiki page.",text_summarization
+"Summarize these email threads regarding project X.",text_summarization
+"Summarize this bug report for a developer.",text_summarization
+"Summarize the project plan document.",text_summarization
+"Summarize these customer support emails.",text_summarization
+"Summarize the latest product release notes.",text_summarization
+"Summarize the weekly report from the team.",text_summarization
+"Summarize the key points of this technical document.",text_summarization
+"Summarize this long email thread for me.",text_summarization
+"Summarize this Confluence page about deployment guidelines.",text_summarization
+"Write a professional email to request VPN access.",text_generation
+"Draft a message to the team about the deployment schedule.",text_generation
+"Create a polite email reminder for pending code reviews.",text_generation
+"Generate a Slack message announcing the new software update.",text_generation
+"Write an internal email explaining the new password policy.",text_generation
+"Draft an email requesting feedback on the prototype.",text_generation
+"Write a polite follow-up email to a colleague.",text_generation
+"Generate a template email for onboarding a new employee.",text_generation
+"Draft an internal email about server maintenance.",text_generation
+"Generate a professional Slack announcement for project completion.",text_generation
+"Draft an email to the QA team about test coverage.",text_generation
+"Draft an email requesting access to the internal wiki.",text_generation
+"Explain what this error in the server logs means.",explanation_task
+"Explain how this Python function works.",explanation_task
+"Describe what this Dockerfile is doing step by step.",explanation_task
+"Explain the difference between HTTP and HTTPS.",explanation_task
+"Explain how to resolve merge conflicts in Git.",explanation_task
+"Explain the steps to configure Git hooks.",explanation_task
+"Explain how Kubernetes handles pod scaling.",explanation_task
+"Explain the concept of CI/CD pipelines.",explanation_task
+"Explain the difference between Docker containers and virtual machines.",explanation_task
+"Explain how to set up a virtual environment in Python.",explanation_task
+"Explain the difference between REST and GraphQL APIs.",explanation_task
+"Explain how to debug a segmentation fault in C.",explanation_task
+"Explain how load balancing works in web servers.",explanation_task
+"Explain how to configure VPN on a Mac.",explanation_task
+"Explain how to configure VPN on Windows.",explanation_task
+"Explain the error message 'Segmentation Fault: core dumped' in Linux.",explanation_task
+prompt,task_type
+"Write a Python script that monitors CPU usage and alerts if it exceeds a threshold.",code_task
+"Refactor this C# code to follow SOLID principles.",code_task
+"Create a JavaScript function that validates form input.",code_task
+"Write a Python function to convert a CSV file to JSON.",code_task
+"Generate unit tests for this Ruby class.",code_task
+"Refactor this PHP function to remove nested loops.",code_task
+"Write a Python function to send an HTTP GET request.",code_task
+"Create a Java method that parses log files.",code_task
+"Write a Bash script to backup a directory.",code_task
+"Generate test cases for this Python function that handles dates.",code_task
+"Summarize the customer feedback emails for last month.",text_summarization
+"Summarize the onboarding documentation for new employees.",text_summarization
+"Summarize this long Confluence page on API design guidelines.",text_summarization
+"Summarize the sprint retrospective notes.",text_summarization
+"Summarize this email from the DevOps team.",text_summarization
+"Summarize the project requirements document.",text_summarization
+"Summarize the Slack discussion about the deployment issue.",text_summarization
+"Summarize the technical design document for the new service.",text_summarization
+"Summarize the code review comments for this PR.",text_summarization
+"Summarize this bug triage report.",text_summarization
+"Write a professional email to request software installation on your workstation.",text_generation
+"Draft a message to HR about your leave request.",text_generation
+"Generate an internal Slack message announcing the maintenance window.",text_generation
+"Write a formal email requesting approval for a new tool.",text_generation
+"Draft a message to the engineering team about a security update.",text_generation
+"Generate a polite email asking a colleague to review your document.",text_generation
+"Draft an internal announcement for the new team members.",text_generation
+"Write an email requesting access to a shared drive.",text_generation
+"Generate a Slack message to remind the team about the daily standup.",text_generation
+"Draft a professional email to schedule a meeting with stakeholders.",text_generation
+"Explain how to use Git rebase to clean up commit history.",explanation_task
+"Explain the steps to set up a virtual machine in VMware.",explanation_task
+"Explain how environment variables work in Linux.",explanation_task
+"Explain the difference between monolithic and microservices architectures.",explanation_task
+"Explain how to configure a reverse proxy with Nginx.",explanation_task
+"Explain how OAuth 2.0 authentication works.",explanation_task
+"Explain how to debug memory leaks in a Python program.",explanation_task
+"Explain the difference between synchronous and asynchronous calls in Node.js.",explanation_task
+"Explain how to set up SSL certificates on Apache server.",explanation_task
+"Explain how to monitor application logs using ELK stack.",explanation_task
+"Write a Python function to merge multiple dictionaries.",code_task
+"Refactor this Python loop to a list comprehension.",code_task
+"Create a Bash script to check disk space usage.",code_task
+"Generate unit tests for this JavaScript API endpoint.",code_task
+"Write a Python script to send emails to a list of users.",code_task
+"Refactor this Java method to reduce cyclomatic complexity.",code_task
+"Write a Python function that parses XML data.",code_task
+"Create a Python function to filter log entries based on severity.",code_task
+"Summarize the documentation for the API endpoints.",text_summarization
+"Summarize the team's monthly performance report.",text_summarization
+"Summarize the troubleshooting guide for internal tools.",text_summarization
+"Summarize the technical proposal for cloud migration.",text_summarization
+"Write an email to notify the team about downtime.",text_generation
+"Generate a Slack message to request feedback on the new feature.",text_generation
+"Draft a professional email requesting clarification from a vendor.",text_generation
+"Write a concise email summarizing the QA findings.",text_generation
+"Explain how to handle merge conflicts in GitHub.",explanation_task
+"Explain the difference between TCP and UDP.",explanation_task
+"Explain how load testing works for web applications.",explanation_task
+"Explain how caching improves web application performance.",explanation_task
+"Explain the difference between POST and PUT HTTP methods.",explanation_task
+prompt,task_type
+"Write a Python function to calculate Fibonacci numbers using recursion.",code_task
+"Refactor this JavaScript function to remove duplicated code.",code_task
+"Write a Python function to validate credit card numbers.",code_task
+"Create a Bash script to automate database backups.",code_task
+"Write a Python script to scrape website data and save as CSV.",code_task
+"Generate unit tests for this Node.js API function.",code_task
+"Refactor this Python function to improve performance.",code_task
+"Write a function to convert Markdown files to HTML.",code_task
+"Create a Python function that parses JSON from an API response.",code_task
+"Write a Python function to generate random passwords.",code_task
+"Summarize the onboarding guide for new software tools.",text_summarization
+"Summarize this internal wiki page about deployment policies.",text_summarization
+"Summarize the weekly project update from the DevOps team.",text_summarization
+"Summarize the client meeting notes for internal review.",text_summarization
+"Summarize this long Jira ticket describing a bug.",text_summarization
+"Summarize the instructions for configuring the new VPN.",text_summarization
+"Summarize the technical documentation of the REST API.",text_summarization
+"Summarize the product release notes for the latest update.",text_summarization
+"Summarize the troubleshooting steps for a failed deployment.",text_summarization
+"Summarize the instructions for onboarding a new developer.",text_summarization
+"Write a professional email to request software license renewal.",text_generation
+"Draft a message to the team about the security update.",text_generation
+"Generate an email to schedule a code review meeting.",text_generation
+"Write a Slack message informing the team about server maintenance.",text_generation
+"Draft an email to notify QA about a production issue.",text_generation
+"Generate a professional email to request database access.",text_generation
+"Write a Slack message to remind the team about the sprint planning.",text_generation
+"Draft an email to request clarification from the project manager.",text_generation
+"Write a professional follow-up email regarding the task deadline.",text_generation
+"Generate a Slack announcement about the software upgrade.",text_generation
+"Explain how to debug a Python function that raises an exception.",explanation_task
+"Explain how to configure a Kubernetes deployment.",explanation_task
+"Explain the difference between GET and POST HTTP requests.",explanation_task
+"Explain how to troubleshoot Docker container startup issues.",explanation_task
+"Explain the difference between synchronous and asynchronous programming.",explanation_task
+"Explain how to set up a Python virtual environment.",explanation_task
+"Explain how to configure Git branch protection rules.",explanation_task
+"Explain the concept of continuous integration and deployment.",explanation_task
+"Explain how to use environment variables in a Node.js application.",explanation_task
+"Explain how to set up SSL certificates for a web server.",explanation_task
+"Write a Python function to calculate the mean and median of a list.",code_task
+"Refactor this JavaScript loop to a functional style using map/filter.",code_task
+"Create a Python function to flatten a nested dictionary.",code_task
+"Write a Python script to download images from a URL list.",code_task
+"Generate unit tests for this Python class that handles user data.",code_task
+"Refactor this Bash script to improve error handling.",code_task
+"Write a Python function to remove stopwords from text.",code_task
+"Create a function that generates random data for testing.",code_task
+"Summarize the internal process document for software deployment.",text_summarization
+"Summarize the quarterly performance report from the engineering team.",text_summarization
+"Summarize the release notes for the latest API version.",text_summarization
+"Summarize the user manual for the new internal tool.",text_summarization
+"Write an email requesting approval for a new project tool.",text_generation
+"Draft a Slack message to request feedback on the new UI feature.",text_generation
+"Generate a professional email about policy changes in the department.",text_generation
+"Write a Slack message to announce server maintenance downtime.",text_generation
+"Explain how to optimize SQL queries for performance.",explanation_task
+"Explain how load balancers distribute traffic.",explanation_task
+"Explain how to configure firewall rules on Linux.",explanation_task
+"Explain the difference between a virtual machine and a container.",explanation_task
+"Explain how to interpret CPU and memory usage metrics.",explanation_task
