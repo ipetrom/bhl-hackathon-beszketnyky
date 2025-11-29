@@ -1,0 +1,23 @@
+id, model_name, model_id, provider, complexity_level, task_type, co2, cost_input_tokens, cost_output_tokens
+1, claude-opus-4-5, claude-opus-4-5-20251101, Anthropic, 10, "[code_task, text_summarization, text_generation, explanation_task]", 0.8, 5, 25
+2, claude-sonnet-4-5, claude-sonnet-4-5-20250929, Anthropic, 9, "[code_task, text_summarization, text_generation, explanation_task]", 0.48, 3, 15
+3, claude-opus-4, claude-opus-4-20250514, Anthropic, 9, "[code_task, text_summarization, text_generation, explanation_task]", 2.4, 15, 75
+4, claude-sonnet-4, claude-sonnet-4-20250514, Anthropic, 9, "[code_task, text_summarization, text_generation, explanation_task]", 0.48, 3, 15
+5, claude-3-7-sonnet, claude-3-7-sonnet-20250219, Anthropic, 9, "[code_task, text_summarization, text_generation, explanation_task]", 0.48, 3, 15
+6, claude-haiku-4-5, claude-haiku-4-5-20251001, Anthropic, 7, "[text_summarization, text_generation, explanation_task]", 0.16, 1, 5
+7, claude-3-5-haiku, claude-3-5-haiku-20241022, Anthropic, 6, "[text_summarization, text_generation, explanation_task]", 0.13, 0.8, 4
+8, claude-3-haiku, claude-3-haiku-20240307, Anthropic, 4, "[text_summarization, text_generation]", 0.04, 0.25, 1.25
+9, gpt-4o, gpt-4o, OpenAI, 6, "[code_task, text_summarization, text_generation, explanation_task]", 0.4, 2.5, 10
+10, gpt-4o-mini, gpt-4o-mini, OpenAI, 4, "[text_summarization, text_generation, explanation_task]", 0.024, 0.15, 0.6
+11, o1, o1, OpenAI, 8, "[code_task, reasoning, complex_task]", 2.4, 15, 60
+12, o1-mini, o1-mini, OpenAI, 6, "[code_task, reasoning, complex_task]", 0.18, 1.1, 4.4
+13, gpt-4.1, gpt-4.1, OpenAI, 7, "[code_task, text_summarization, text_generation, explanation_task]", 12, 75, 150
+14, gpt-5, gpt-5, OpenAI, 8, "[code_task, text_summarization, text_generation, explanation_task]", 0.2, 1.25, 10
+15, gpt-4-turbo, gpt-4-turbo, OpenAI, 5, "[code_task, text_summarization, text_generation, explanation_task]", 1.6, 10, 30
+16, gpt-3.5-turbo, gpt-3.5-turbo, OpenAI, 3, "[text_summarization, text_generation]", 0.08, 0.5, 1.5
+17, gpt-5-nano, gpt-5-nano, OpenAI, 2, "[code_task, text_summarization, text_generation, explanation_task]", 0.02, 0.05, 0.4
+18, gpt-5-mini, gpt-5-mini, OpenAI, 4, "[code_task, text_summarization, text_generation, explanation_task]", 0.04, 0.25, 2
+19, llama-3.1-8b-instant, llama-3.1-8b-instant, Groq, 4, "[text_summarization, text_generation]", 0.008, 0.05, 0.08
+20, llama-4-scout-17b, meta-llama/llama-4-scout-17b-16e-instruct, Groq, 6, "[text_summarization, text_generation, explanation_task]", 0.017, 0.11, 0.34
+21, gpt-oss-120b, openai/gpt-oss-120b, Groq, 8, "[code_task, text_summarization, text_generation, explanation_task]", 0.024, 0.15, 0.6
+22, qwen3-32b, qwen/qwen3-32b, Groq, 7, "[code_task, text_summarization, text_generation, explanation_task]", 0.046, 0.29, 0.59
