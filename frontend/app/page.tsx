@@ -27,6 +27,7 @@ export interface ModelSuggestion {
     cost_output_tokens: number
   }
   reason: string
+  is_under_engineered?: boolean
   savings: {
     cost_input_tokens: number
     cost_output_tokens?: number

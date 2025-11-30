@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Plus, ArrowUp, Code, ChevronDown, Search, Check, Loader2, Trash2 } from "lucide-react"
+import { Plus, ArrowUp, Code, ChevronDown, Search, Check, Loader2, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Chat } from "@/app/page"
@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils"
 import { fetchModels, sendChatMessage, type Model } from "@/lib/api"
 import type { Message as ChatMessage, ModelSuggestion } from "@/app/page"
 import { MessageContent } from "@/components/message-content"
+import Image from "next/image"
+import PyCharmIcon from "@/images/PyCharm_Icon.png"
 
 interface ChatAreaProps {
   activeChat: Chat | null
@@ -33,6 +35,11 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
   const [modelSuggestion, setModelSuggestion] = useState<ModelSuggestion | null>(null)
   const [pendingQuery, setPendingQuery] = useState<string | null>(null)
   const [originalModel, setOriginalModel] = useState<Model | null>(null)
+  const [showJetBrainsPopup, setShowJetBrainsPopup] = useState(false)
+  const [showJetBrainsLoading, setShowJetBrainsLoading] = useState(false)
+  const [jetBrainsStep, setJetBrainsStep] = useState<1 | 2>(1)
+  const [jetBrainsSelectedModel, setJetBrainsSelectedModel] = useState<Model | null>(null)
+  const jetBrainsTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null)
   const [ragSavings, setRagSavings] = useState<{ cost: number; co2: number } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -103,7 +110,20 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
     setInput("")
     setIsSending(true)
     setModelSuggestion(null)
-    setRagSavings(null)
+    setShowJetBrainsPopup(false)
+
+    // Clear any existing timer
+    if (jetBrainsTimerRef.current) {
+      clearTimeout(jetBrainsTimerRef.current)
+      jetBrainsTimerRef.current = null
+    }
+
+    // Show JetBrains popup after 3 seconds if in code mode
+    if (isCodeMode) {
+      jetBrainsTimerRef.current = setTimeout(() => {
+        setShowJetBrainsPopup(true)
+      }, 3000)
+    }
 
     try {
       // Prepare messages for API
@@ -134,6 +154,13 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
 
         // Update chat
         onSendMessage(userMessage, assistantMessage)
+
+        // Clear JetBrains popup timer if response arrived
+        if (jetBrainsTimerRef.current) {
+          clearTimeout(jetBrainsTimerRef.current)
+          jetBrainsTimerRef.current = null
+        }
+        setShowJetBrainsPopup(false)
 
         // Show model suggestion if available
         if (response.model_suggestion) {
@@ -192,8 +219,23 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
       onSendMessage(userMessage, assistantMessage)
     } finally {
       setIsSending(false)
+      // Clear JetBrains popup timer
+      if (jetBrainsTimerRef.current) {
+        clearTimeout(jetBrainsTimerRef.current)
+        jetBrainsTimerRef.current = null
+      }
+      setShowJetBrainsPopup(false)
     }
   }
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (jetBrainsTimerRef.current) {
+        clearTimeout(jetBrainsTimerRef.current)
+      }
+    }
+  }, [])
 
   const handleCodePrompt = () => {
     setIsCodeMode(!isCodeMode)
@@ -207,6 +249,174 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
 
   return (
     <main className={cn("flex-1 flex flex-col h-screen ml-0 transition-all duration-300", sidebarOpen && "ml-72")}>
+      {/* JetBrains Loading State */}
+      {showJetBrainsLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-card border border-border rounded-xl shadow-xl p-8">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        </div>
+      )}
+
+      {/* JetBrains Integration Popup - Outside conditional so it can be shown from anywhere */}
+      {showJetBrainsPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-card border border-border rounded-xl shadow-xl max-w-2xl w-full p-8 relative">
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setShowJetBrainsPopup(false)
+                setJetBrainsStep(1)
+                setJetBrainsSelectedModel(null)
+                if (jetBrainsTimerRef.current) {
+                  clearTimeout(jetBrainsTimerRef.current)
+                  jetBrainsTimerRef.current = null
+                }
+              }}
+              className="absolute top-4 right-4 p-2 hover:bg-secondary rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5 text-muted-foreground" />
+            </button>
+
+            {jetBrainsStep === 1 ? (
+              <>
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                    <Code className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      Try JetBrains Integration
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      This looks like a complex coding task. Would you like to try our JetBrains integration? Our AI assistant will help you write accurate, energy-efficient code with minimal wasted tokens and lower CO₂ emissions.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setJetBrainsStep(2)
+                      // Set default model to first Anthropic model if available
+                      const anthropicModels = models.filter(m => m.provider.toLowerCase() === "anthropic")
+                      if (anthropicModels.length > 0 && !jetBrainsSelectedModel) {
+                        setJetBrainsSelectedModel(anthropicModels[0])
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-gradient-to-br from-blue-500 to-indigo-600 hover:opacity-90 text-white rounded-lg font-medium transition-opacity"
+                  >
+                    Yes, let's try it
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowJetBrainsPopup(false)
+                      setJetBrainsStep(1)
+                      if (jetBrainsTimerRef.current) {
+                        clearTimeout(jetBrainsTimerRef.current)
+                        jetBrainsTimerRef.current = null
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg font-medium transition-colors"
+                  >
+                    No, continue here
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Step 2: Chatbox with models */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
+                    JetBrains Integration
+                  </h3>
+                  
+                  {/* Chatbox with pre-filled text */}
+                  <div className="bg-secondary rounded-lg border border-border p-4">
+                    <textarea
+                      value="I want to make a simple snake pygame"
+                      readOnly
+                      className="w-full bg-transparent resize-none text-foreground text-sm focus:outline-none"
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Model Selector - Only Anthropic models */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Select Model</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {models
+                        .filter(m => m.provider.toLowerCase() === "anthropic")
+                        .map((model) => (
+                          <button
+                            key={model.id}
+                            onClick={() => setJetBrainsSelectedModel(model)}
+                            className={cn(
+                              "w-full text-left p-3 rounded-lg border transition-colors",
+                              jetBrainsSelectedModel?.id === model.id
+                                ? "bg-primary/10 border-primary"
+                                : "bg-secondary border-border hover:bg-secondary/80"
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{model.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {model.provider} • CO₂: {model.co2}g
+                                </p>
+                              </div>
+                              {jetBrainsSelectedModel?.id === model.id && (
+                                <Check className="h-4 w-4 text-primary" />
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => {
+                        // Try to open PyCharm on Mac using URL scheme
+                        // PyCharm registers pycharm:// URL scheme on macOS
+                        try {
+                          // Attempt to open PyCharm via URL scheme
+                          window.location.href = "pycharm://"
+                          
+                          // Fallback: if PyCharm doesn't open, show website after delay
+                          setTimeout(() => {
+                            // This will only execute if user is still on the page
+                            // (if PyCharm opened, user likely navigated away)
+                            window.open("https://www.jetbrains.com/pycharm/", "_blank")
+                          }, 2000)
+                        } catch (error) {
+                          // If URL scheme fails, open website directly
+                          window.open("https://www.jetbrains.com/pycharm/", "_blank")
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-gradient-to-br from-blue-500 to-indigo-600 hover:opacity-90 text-white rounded-lg font-medium transition-opacity flex items-center justify-center gap-2"
+                    >
+                      <Image src={PyCharmIcon} alt="PyCharm" width={20} height={20} className="object-contain" />
+                      Go to PyCharm
+                    </button>
+                    <button
+                      onClick={() => {
+                        // TODO: Implement Download PyCharm
+                        window.open("https://www.jetbrains.com/pycharm/download/", "_blank")
+                      }}
+                      className="flex-1 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Image src={PyCharmIcon} alt="PyCharm" width={20} height={20} className="object-contain" />
+                      Download PyCharm
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       {activeChat ? (
         <>
           {/* Chat Header */}
@@ -255,7 +465,9 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                         Model Suggestion
                       </h4>
                       <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-                        Cheaper model can handle this task would you like to switch it? Consider using a more efficient model to save costs and reduce CO₂.
+                        {modelSuggestion.is_under_engineered
+                          ? "Seems like you better need a better model for this task."
+                          : "Cheaper model can handle this task would you like to switch it? Consider using a more efficient model to save costs and reduce CO₂."}
                       </p>
                       <div className="flex items-center gap-4 text-xs text-amber-700 dark:text-amber-300 mb-3">
                         <div>
@@ -263,7 +475,7 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                           {modelSuggestion.suggested_model.name}
                         </div>
                       </div>
-                      {modelSuggestion.savings && (
+                      {modelSuggestion.savings && !modelSuggestion.is_under_engineered && (
                         <div className="flex gap-4 text-xs text-green-700 dark:text-green-400 mb-3">
                           {modelSuggestion.savings.cost_input_tokens > 0 && (
                             <div>💰 Save ${modelSuggestion.savings.cost_input_tokens.toFixed(2)}/1K tokens</div>
@@ -494,6 +706,7 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                   </div>
                 </div>
               )}
+
             </div>
           </ScrollArea>
 
@@ -525,7 +738,25 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
           {/* Welcome Screen */}
           <div className="flex-1 flex flex-col items-center justify-center px-6">
             <div className="text-center mb-8">
-              <h1 className="text-5xl font-serif text-foreground">Hi, Viktor</h1>
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log("Hi Viktor clicked, showing loading then popup")
+                  setShowJetBrainsLoading(true)
+                  // Show popup after 3 seconds
+                  setTimeout(() => {
+                    setShowJetBrainsLoading(false)
+                    setShowJetBrainsPopup(true)
+                  }, 3000)
+                }}
+                className="cursor-pointer inline-block"
+                style={{ background: 'transparent', border: 'none', padding: 0, outline: 'none' }}
+                aria-label="Show JetBrains integration popup"
+                type="button"
+              >
+                <h1 className="text-5xl font-serif text-foreground pointer-events-none">Hi, Viktor</h1>
+              </button>
             </div>
 
             {/* Input Box */}
