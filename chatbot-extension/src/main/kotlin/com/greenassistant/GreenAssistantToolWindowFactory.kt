@@ -451,7 +451,7 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                     }
                     readerThread.start()
 
-                    val finished = process.waitFor(120, TimeUnit.SECONDS)
+                    val finished = process.waitFor(360, TimeUnit.SECONDS)
                     readerThread.join(5000)
 
                     if (process.isAlive) {
