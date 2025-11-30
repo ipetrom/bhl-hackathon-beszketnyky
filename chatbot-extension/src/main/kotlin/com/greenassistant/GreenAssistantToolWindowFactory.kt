@@ -22,22 +22,34 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
         val rootPanel = JPanel(BorderLayout())
         rootPanel.border = EmptyBorder(0, 0, 0, 0)
 
+        // Modern JetBrains color palette
         val jetbrainsBlue = Color(0x4A90E2)
         val jetbrainsBlueHover = Color(0x3B7FD9)
-        val jetbrainsBackground = Color(0xFFFFFF)
-        val jetbrainsChatBackground = Color(0xF5F5F5)
-        val jetbrainsBorder = Color(0xD0D0D0)
-        val jetbrainsText = Color(0x2B2B2B)
-        val jetbrainsTextSecondary = Color(0x808080)
+        val jetbrainsBlueLight = Color(0xE8F4FD)
+        val jetbrainsBackground = Color(0xFAFAFA)
+        val jetbrainsChatBackground = Color(0xFFFFFF)
+        val jetbrainsBorder = Color(0xE1E4E8)
+        val jetbrainsBorderLight = Color(0xF0F0F0)
+        val jetbrainsText = Color(0x1E1E1E)
+        val jetbrainsTextSecondary = Color(0x6E6E6E)
+        val jetbrainsTextTertiary = Color(0x9E9E9E)
+        val jetbrainsGreen = Color(0x4CAF50)
+        val jetbrainsGreenLight = Color(0xE8F5E9)
 
+        // Modern header with gradient-like effect
         val headerPanel = JPanel(BorderLayout()).apply {
-            border = EmptyBorder(12, 16, 8, 16)
-            background = jetbrainsBackground
+            border = BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, jetbrainsBorder),
+                EmptyBorder(16, 20, 16, 20)
+            )
+            background = jetbrainsChatBackground
         }
 
+        // Title with icon-like styling
         val titleLabel = JLabel("EcoMind").apply {
             foreground = jetbrainsText
-            font = font.deriveFont(java.awt.Font.BOLD, 14f)
+            font = font.deriveFont(java.awt.Font.BOLD, 16f)
+            border = EmptyBorder(0, 0, 2, 0)
         }
 
         val subtitleLabel = JLabel("Chat with EcoMind about this project").apply {
@@ -48,75 +60,147 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
         val titleBox = JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             isOpaque = false
+            border = EmptyBorder(0, 0, 0, 0)
             add(titleLabel)
+            add(Box.createVerticalStrut(4))
             add(subtitleLabel)
         }
 
+        // Modern status indicator with badge
+        val statusBadge = JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.X_AXIS)
+            isOpaque = true
+            background = jetbrainsGreenLight
+            border = BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(6, 12, 6, 12),
+                BorderFactory.createEmptyBorder(0, 0, 0, 0)
+            )
+            preferredSize = Dimension(80, 28)
+        }
+
         val statusDot = JLabel("●").apply {
-            foreground = Color(0x4CAF50)
+            foreground = jetbrainsGreen
+            font = font.deriveFont(10f)
+            border = EmptyBorder(0, 0, 0, 6)
         }
 
         val statusLabel = JLabel("Ready").apply {
-            foreground = jetbrainsTextSecondary
-            border = EmptyBorder(0, 4, 0, 0)
+            foreground = Color(0x2E7D32)
+            font = font.deriveFont(java.awt.Font.BOLD, 11f)
         }
 
-        val statusPanel = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            add(statusDot, BorderLayout.WEST)
-            add(statusLabel, BorderLayout.CENTER)
-        }
+        statusBadge.add(statusDot)
+        statusBadge.add(statusLabel)
 
         headerPanel.add(titleBox, BorderLayout.WEST)
-        headerPanel.add(statusPanel, BorderLayout.EAST)
+        headerPanel.add(statusBadge, BorderLayout.EAST)
 
         val chatArea = JTextPane().apply {
             isEditable = false
             contentType = "text/html"
             background = jetbrainsChatBackground
-            border = EmptyBorder(16, 16, 16, 16)
+            foreground = jetbrainsText // Set explicit foreground color
+            border = EmptyBorder(20, 24, 20, 24)
         }
 
         val scrollPane = JScrollPane(chatArea).apply {
-            border = BorderFactory.createMatteBorder(0, 0, 1, 0, jetbrainsBorder)
+            border = null
             verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
-            background = jetbrainsBackground
+            background = jetbrainsChatBackground
+            // Modern scrollbar styling
+            verticalScrollBar.apply {
+                preferredSize = Dimension(8, 0)
+                unitIncrement = 16
+                blockIncrement = 80
+            }
         }
 
-        val inputPanel = JPanel(BorderLayout(10, 0)).apply {
-            border = EmptyBorder(8, 16, 4, 16)
-            background = jetbrainsBackground
+        val inputPanel = JPanel(BorderLayout(12, 0)).apply {
+            border = EmptyBorder(16, 20, 16, 20)
+            background = jetbrainsChatBackground
         }
 
+        // Modern input field with rounded corners
         val inputField = JTextField().apply {
             border = BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(jetbrainsBorder, 1),
-                BorderFactory.createEmptyBorder(10, 14, 10, 14)
+                BorderFactory.createEmptyBorder(12, 16, 12, 16)
             )
             font = font.deriveFont(13f)
-            background = jetbrainsBackground
+            background = jetbrainsChatBackground
             foreground = jetbrainsText
             toolTipText = "Type your message and press Enter or click Send"
+            // Add focus listener for modern border effect
+            addFocusListener(object : java.awt.event.FocusAdapter() {
+                override fun focusGained(e: java.awt.event.FocusEvent) {
+                    border = BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(jetbrainsBlue, 2),
+                        BorderFactory.createEmptyBorder(11, 15, 11, 15)
+                    )
+                }
+                override fun focusLost(e: java.awt.event.FocusEvent) {
+                    border = BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(jetbrainsBorder, 1),
+                        BorderFactory.createEmptyBorder(12, 16, 12, 16)
+                    )
+                }
+            })
         }
 
-        val sendButton = JButton("Send").apply {
-            preferredSize = Dimension(90, 38)
+        // Modern send button with better styling
+        val sendButton = object : JButton("Send") {
+            override fun paintComponent(g: java.awt.Graphics) {
+                val g2 = g as java.awt.Graphics2D
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+                
+                if (isEnabled) {
+                    // Subtle shadow
+                    val shadowColor = Color(0, 0, 0, 25) // 10% opacity
+                    g2.color = shadowColor
+                    g2.fillRoundRect(0, 2, width, height, 8, 8)
+                    
+                    // Main button
+                    g2.color = background
+                    g2.fillRoundRect(0, 0, width, height - 2, 8, 8)
+                } else {
+                    g2.color = background
+                    g2.fillRoundRect(0, 0, width, height, 8, 8)
+                }
+                
+                super.paintComponent(g)
+            }
+        }.apply {
+            preferredSize = Dimension(100, 44)
             font = font.deriveFont(java.awt.Font.BOLD, 13f)
             background = jetbrainsBlue
             foreground = Color.WHITE
-            isOpaque = true
-            border = BorderFactory.createEmptyBorder(10, 20, 10, 20)
+            isOpaque = false
+            border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
             isFocusPainted = false
             cursor = java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR)
             addMouseListener(object : java.awt.event.MouseAdapter() {
                 override fun mouseEntered(e: java.awt.event.MouseEvent) {
                     if (isEnabled) {
                         background = jetbrainsBlueHover
+                        repaint()
                     }
                 }
                 override fun mouseExited(e: java.awt.event.MouseEvent) {
                     if (isEnabled) {
                         background = jetbrainsBlue
+                        repaint()
+                    }
+                }
+                override fun mousePressed(e: java.awt.event.MouseEvent) {
+                    if (isEnabled) {
+                        background = Color(0x2E6BC7)
+                        repaint()
+                    }
+                }
+                override fun mouseReleased(e: java.awt.event.MouseEvent) {
+                    if (isEnabled) {
+                        background = jetbrainsBlue
+                        repaint()
                     }
                 }
             })
@@ -126,20 +210,25 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
         inputPanel.add(sendButton, BorderLayout.EAST)
 
         val hintLabel = JLabel("Press Enter to send • Use the input below to talk about this project").apply {
-            border = EmptyBorder(0, 20, 8, 20)
-            foreground = jetbrainsTextSecondary
+            border = EmptyBorder(0, 20, 12, 20)
+            foreground = jetbrainsTextTertiary
             font = font.deriveFont(11f)
             horizontalAlignment = SwingConstants.LEFT
-            background = jetbrainsBackground
+            background = jetbrainsChatBackground
             isOpaque = true
         }
 
         val bottomPanel = JPanel(BorderLayout()).apply {
-            background = jetbrainsBackground
+            background = jetbrainsChatBackground
+            border = BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, jetbrainsBorder),
+                EmptyBorder(0, 0, 0, 0)
+            )
             add(inputPanel, BorderLayout.CENTER)
             add(hintLabel, BorderLayout.SOUTH)
         }
 
+        rootPanel.background = jetbrainsBackground
         rootPanel.add(headerPanel, BorderLayout.NORTH)
         rootPanel.add(scrollPane, BorderLayout.CENTER)
         rootPanel.add(bottomPanel, BorderLayout.SOUTH)
@@ -150,13 +239,16 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
         fun setStatus(state: String) {
             SwingUtilities.invokeLater {
                 statusLabel.text = state
-                statusDot.foreground = when (state) {
-                    "Ready" -> Color(0x4CAF50)
-                    "Thinking..." -> jetbrainsBlue
-                    "Error" -> Color(0xF44336)
-                    "Timeout" -> Color(0xFF9800)
-                    else -> jetbrainsTextSecondary
+                val (dotColor, bgColor, textColor) = when (state) {
+                    "Ready" -> Triple(Color(0x4CAF50), Color(0xE8F5E9), Color(0x2E7D32))
+                    "Thinking..." -> Triple(jetbrainsBlue, jetbrainsBlueLight, Color(0x1E5FA8))
+                    "Error" -> Triple(Color(0xF44336), Color(0xFFEBEE), Color(0xC62828))
+                    "Timeout" -> Triple(Color(0xFF9800), Color(0xFFF3E0), Color(0xE65100))
+                    else -> Triple(jetbrainsTextSecondary, Color(0xF5F5F5), jetbrainsTextSecondary)
                 }
+                statusDot.foreground = dotColor
+                statusBadge.background = bgColor
+                statusLabel.foreground = textColor
             }
         }
 
@@ -178,16 +270,16 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                         if (escapedContent.isEmpty()) return@joinToString ""
                         when (role) {
                             "user" -> """
-                                <div style="margin-bottom: 16px; text-align: right;">
-                                    <div style="display: inline-block; max-width: 75%; background: #4A90E2; color: #FFFFFF !important; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);">
-                                        <span style="color: #FFFFFF !important;">$escapedContent</span>
+                                <div style="margin-bottom: 20px; text-align: right;">
+                                    <div style="display: inline-block; max-width: 75%; background: linear-gradient(135deg, #4A90E2 0%, #3B7FD9 100%); padding: 14px 20px; border-radius: 18px 18px 4px 18px; word-wrap: break-word; box-shadow: 0 2px 8px rgba(74, 144, 226, 0.25), 0 1px 2px rgba(0,0,0,0.1);">
+                                        <span style="color: #FFFFFF !important; line-height: 1.5; font-weight: 400; display: block;">$escapedContent</span>
                                     </div>
                                 </div>
                             """.trimIndent()
                             "assistant" -> """
-                                <div style="margin-bottom: 16px; text-align: left;">
-                                    <div style="display: inline-block; max-width: 75%; background: #FFFFFF; color: #1A1A1A !important; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; border: 1px solid #D0D0D0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                        <span style="color: #1A1A1A !important;">$escapedContent</span>
+                                <div style="margin-bottom: 20px; text-align: left;">
+                                    <div style="display: inline-block; max-width: 75%; background: #FFFFFF; padding: 14px 20px; border-radius: 18px 18px 18px 4px; word-wrap: break-word; border: 1px solid #E1E4E8; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02);">
+                                        <span style="color: #1E1E1E !important; line-height: 1.5; font-weight: 400; display: block;">$escapedContent</span>
                                     </div>
                                 </div>
                             """.trimIndent()
@@ -199,9 +291,9 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                         val escapedContent = escapeHtml(currentAssistantContent.toString())
                         if (escapedContent.isNotEmpty()) {
                             """
-                                <div style="margin-bottom: 16px; text-align: left;">
-                                    <div style="display: inline-block; max-width: 75%; background: #FFFFFF; color: #1A1A1A !important; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; border: 1px solid #D0D0D0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                        <span style="color: #1A1A1A !important;">$escapedContent</span><span style="opacity: 0.6; color: #4A90E2;">▊</span>
+                                <div style="margin-bottom: 20px; text-align: left;">
+                                    <div style="display: inline-block; max-width: 75%; background: #FFFFFF; padding: 14px 20px; border-radius: 18px 18px 18px 4px; word-wrap: break-word; border: 1px solid #E1E4E8; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02);">
+                                        <span style="color: #1E1E1E !important; line-height: 1.5; font-weight: 400; display: inline;">$escapedContent</span><span style="opacity: 0.7; color: #4A90E2 !important; font-weight: bold; margin-left: 2px; animation: blink 1s infinite;">▊</span>
                                     </div>
                                 </div>
                             """.trimIndent()
@@ -211,10 +303,10 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                     val bodyContent = when {
                         messagesHtml.isEmpty() && streamingHtml.isEmpty() -> {
                             """
-                                <div style="text-align: center; padding: 60px 20px;">
-                                    <div style="font-size: 24px; color: #4A90E2; margin-bottom: 12px; font-weight: 500;">💬</div>
-                                    <h2 style="color: #1A1A1A; margin-bottom: 8px; font-size: 18px; font-weight: 500;">Hi! I'm EcoMind</h2>
-                                    <p style="color: #4A4A4A; font-size: 14px;">How can I help you with your code today?</p>
+                                <div style="text-align: center; padding: 80px 20px;">
+                                    <div style="font-size: 48px; margin-bottom: 20px; filter: drop-shadow(0 2px 4px rgba(74, 144, 226, 0.2));">🌱</div>
+                                    <h2 style="color: #1E1E1E; margin-bottom: 12px; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;">Hi! I'm EcoMind</h2>
+                                    <p style="color: #6E6E6E; font-size: 14px; line-height: 1.6; max-width: 400px; margin: 0 auto;">How can I help you with your code today?</p>
                                 </div>
                             """.trimIndent()
                         }
@@ -227,31 +319,57 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                         <head>
                             <meta charset="UTF-8">
                             <style type="text/css">
+                                @keyframes blink {
+                                    0%, 50% { opacity: 1; }
+                                    51%, 100% { opacity: 0.3; }
+                                }
                                 body {
-                                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Mono', 'Consolas', monospace;
-                                    font-size: 13px;
+                                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Sans', 'Inter', sans-serif;
+                                    font-size: 14px;
                                     line-height: 1.6;
                                     margin: 0;
                                     padding: 0;
-                                    color: #1A1A1A;
-                                    background: #F5F5F5;
+                                    color: #1E1E1E !important;
+                                    background: #FFFFFF;
+                                    -webkit-font-smoothing: antialiased;
+                                    -moz-osx-font-smoothing: grayscale;
+                                }
+                                * {
+                                    color: #1E1E1E !important;
                                 }
                                 p, div, span {
-                                    color: inherit;
+                                    color: #1E1E1E !important;
                                 }
                                 code {
-                                    font-family: 'JetBrains Mono', 'Consolas', monospace;
-                                    background: #E8E8E8;
-                                    padding: 2px 6px;
-                                    border-radius: 3px;
-                                    font-size: 12px;
+                                    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+                                    background: #F5F5F5;
+                                    padding: 3px 7px;
+                                    border-radius: 4px;
+                                    font-size: 12.5px;
+                                    border: 1px solid #E1E4E8;
+                                    color: #1E1E1E;
                                 }
                                 pre {
-                                    background: #E8E8E8;
-                                    padding: 12px;
-                                    border-radius: 6px;
+                                    background: #F8F9FA;
+                                    padding: 16px;
+                                    border-radius: 8px;
                                     overflow-x: auto;
-                                    border: 1px solid #D0D0D0;
+                                    border: 1px solid #E1E4E8;
+                                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                                    font-size: 12.5px;
+                                    line-height: 1.5;
+                                }
+                                pre code {
+                                    background: transparent;
+                                    padding: 0;
+                                    border: none;
+                                }
+                                a {
+                                    color: #4A90E2;
+                                    text-decoration: none;
+                                }
+                                a:hover {
+                                    text-decoration: underline;
                                 }
                             </style>
                         </head>
@@ -264,6 +382,14 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                     if (chatArea.editorKit !is javax.swing.text.html.HTMLEditorKit) {
                         chatArea.contentType = "text/html"
                     }
+                    
+                    // Force dark text color
+                    chatArea.foreground = jetbrainsText
+                    
+                    // Set document style for HTML rendering
+                    val doc = chatArea.styledDocument
+                    val style = chatArea.addStyle("default", null)
+                    javax.swing.text.StyleConstants.setForeground(style, jetbrainsText)
 
                     chatArea.text = htmlContent
 
@@ -276,6 +402,7 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                 } catch (_: Exception) {
                     try {
                         chatArea.contentType = "text/plain"
+                        chatArea.foreground = jetbrainsText // Ensure dark text in plain text mode
                         val plainText = messages.joinToString("\n\n") { (role, content) ->
                             "${if (role == "user") "You" else "EcoMind"}: $content"
                         } + if (currentAssistantContent.isNotEmpty()) "\n\nEcoMind: $currentAssistantContent" else ""
@@ -323,9 +450,10 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                     sendButton.background = jetbrainsBlue
                     sendButton.foreground = Color.WHITE
                 } else {
-                    sendButton.background = Color(0xD0D0D0)
-                    sendButton.foreground = Color(0x808080)
+                    sendButton.background = Color(0xE1E4E8)
+                    sendButton.foreground = Color(0x9E9E9E)
                 }
+                sendButton.repaint()
             }
         }
 
@@ -509,22 +637,57 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                 <head>
                     <meta charset="UTF-8">
                     <style type="text/css">
+                        @keyframes blink {
+                            0%, 50% { opacity: 1; }
+                            51%, 100% { opacity: 0.3; }
+                        }
                         body {
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Mono', 'Consolas', monospace;
-                            font-size: 13px;
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Sans', 'Inter', sans-serif;
+                            font-size: 14px;
                             line-height: 1.6;
                             margin: 0;
                             padding: 0;
-                            color: #1A1A1A;
+                            color: #1E1E1E !important;
+                            background: #FFFFFF;
+                            -webkit-font-smoothing: antialiased;
+                            -moz-osx-font-smoothing: grayscale;
+                        }
+                        * {
+                            color: #1E1E1E !important;
+                        }
+                        p, div, span {
+                            color: #1E1E1E !important;
+                        }
+                        code {
+                            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
                             background: #F5F5F5;
+                            padding: 3px 7px;
+                            border-radius: 4px;
+                            font-size: 12.5px;
+                            border: 1px solid #E1E4E8;
+                            color: #1E1E1E !important;
+                        }
+                        pre {
+                            background: #F8F9FA;
+                            padding: 16px;
+                            border-radius: 8px;
+                            overflow-x: auto;
+                            border: 1px solid #E1E4E8;
+                            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                        }
+                        h2 {
+                            color: #1E1E1E !important;
+                        }
+                        p {
+                            color: #6E6E6E !important;
                         }
                     </style>
                 </head>
                 <body>
-                    <div style="text-align: center; padding: 60px 20px;">
-                        <div style="font-size: 24px; color: #4A90E2; margin-bottom: 12px; font-weight: 500;">💬</div>
-                        <h2 style="color: #1A1A1A; margin-bottom: 8px; font-size: 18px; font-weight: 500;">Hi! I'm EcoMind</h2>
-                        <p style="color: #4A4A4A; font-size: 14px;">How can I help you with your code today?</p>
+                    <div style="text-align: center; padding: 80px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 20px; filter: drop-shadow(0 2px 4px rgba(74, 144, 226, 0.2));">🌱</div>
+                        <h2 style="color: #1E1E1E; margin-bottom: 12px; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;">Hi! I'm EcoMind</h2>
+                        <p style="color: #6E6E6E; font-size: 14px; line-height: 1.6; max-width: 400px; margin: 0 auto;">How can I help you with your code today?</p>
                     </div>
                 </body>
                 </html>
