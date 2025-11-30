@@ -336,6 +336,7 @@ async def chat_completion(request: ChatRequest):
                     co2_savings = selected_model.co2 - optimal_model.co2
 
                     # Determine if suggesting cheaper or more powerful model
+                    is_under_engineered = complexity_difference < 0
                     if complexity_difference > 0:
                         reason = f"This task has complexity level {complexity}, but you selected a level {selected_model.complexity_level} model. Consider using a more efficient model to save costs and reduce CO₂."
                     else:
@@ -344,6 +345,7 @@ async def chat_completion(request: ChatRequest):
                     model_suggestion = {
                         "suggested_model": model_to_dict(optimal_model),
                         "reason": reason,
+                        "is_under_engineered": is_under_engineered,
                         "savings": {
                             "cost_input_tokens": round(cost_savings, 3),
                             "cost_output_tokens": round(cost_savings_output, 3),
