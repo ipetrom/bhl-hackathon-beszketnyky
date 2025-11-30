@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>EcoMind Architecture Visualization</title>
+		<script src="https://d3js.org/d3.v7.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				min-height: 100vh;
+				padding: 20px;
+			}
+
+			.container {
+				max-width: 1400px;
+				margin: 0 auto;
+				background: white;
+				border-radius: 20px;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+				padding: 40px;
+			}
+
+			h1 {
+				color: #2d3748;
+				margin-bottom: 10px;
+				font-size: 2.5em;
+			}
+
+			.subtitle {
+				color: #718096;
+				margin-bottom: 30px;
+				font-size: 1.1em;
+			}
+
+			.tabs {
+				display: flex;
+				gap: 10px;
+				margin-bottom: 30px;
+				border-bottom: 2px solid #e2e8f0;
+			}
+
+			.tab {
+				padding: 12px 24px;
+				background: none;
+				border: none;
+				cursor: pointer;
+				font-size: 1em;
+				color: #718096;
+				border-bottom: 3px solid transparent;
+				transition: all 0.3s;
+			}
+
+			.tab:hover {
+				color: #667eea;
+			}
+
+			.tab.active {
+				color: #667eea;
+				border-bottom-color: #667eea;
+				font-weight: 600;
+			}
+
+			.tab-content {
+				display: none;
+			}
+
+			.tab-content.active {
+				display: block;
+			}
+
+			.diagram-container {
+				background: #f7fafc;
+				border-radius: 10px;
+				padding: 30px;
+				margin-bottom: 20px;
+				min-height: 500px;
+			}
+
+			.info-box {
+				background: #edf2f7;
+				border-left: 4px solid #667eea;
+				padding: 20px;
+				margin: 20px 0;
+				border-radius: 5px;
+			}
+
+			.info-box h3 {
+				color: #2d3748;
+				margin-bottom: 10px;
+			}
+
+			.info-box ul {
+				list-style: none;
+				padding-left: 0;
+			}
+
+			.info-box li {
+				padding: 5px 0;
+				color: #4a5568;
+			}
+
+			.info-box li:before {
+				content: "▸ ";
+				color: #667eea;
+				font-weight: bold;
+			}
+
+			.component-card {
+				background: white;
+				border: 2px solid #e2e8f0;
+				border-radius: 10px;
+				padding: 20px;
+				margin: 15px 0;
+				transition: all 0.3s;
+			}
+
+			.component-card:hover {
+				border-color: #667eea;
+				box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+				transform: translateY(-2px);
+			}
+
+			.component-card h4 {
+				color: #2d3748;
+				margin-bottom: 10px;
+			}
+
+			.component-card p {
+				color: #718096;
+				line-height: 1.6;
+			}
+
+			.tech-badge {
+				display: inline-block;
+				background: #667eea;
+				color: white;
+				padding: 4px 12px;
+				border-radius: 20px;
+				font-size: 0.85em;
+				margin: 3px;
+			}
+
+			.flow-diagram {
+				display: flex;
+				justify-content: space-around;
+				align-items: center;
+				flex-wrap: wrap;
+				margin: 30px 0;
+			}
+
+			.flow-step {
+				background: white;
+				border: 2px solid #667eea;
+				border-radius: 10px;
+				padding: 20px;
+				margin: 10px;
+				min-width: 200px;
+				text-align: center;
+				position: relative;
+			}
+
+			.flow-step:not(:last-child)::after {
+				content: "→";
+				position: absolute;
+				right: -30px;
+				top: 50%;
+				transform: translateY(-50%);
+				font-size: 2em;
+				color: #667eea;
+			}
+
+			.flow-step h4 {
+				color: #2d3748;
+				margin-bottom: 10px;
+			}
+
+			.stats-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+				gap: 20px;
+				margin: 30px 0;
+			}
+
+			.stat-card {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+				padding: 25px;
+				border-radius: 10px;
+				text-align: center;
+			}
+
+			.stat-card h3 {
+				font-size: 2.5em;
+				margin-bottom: 10px;
+			}
+
+			.stat-card p {
+				font-size: 1.1em;
+				opacity: 0.9;
+			}
+
+			code {
+				background: #2d3748;
+				color: #68d391;
+				padding: 2px 6px;
+				border-radius: 4px;
+				font-family: "Courier New", monospace;
+			}
+
+			.mermaid {
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>🌱 EcoMind Architecture</h1>
+			<p class="subtitle">
+				Intelligent AI Model Router - System Architecture Visualization
+			</p>
+
+			<div class="tabs">
+				<button class="tab active" onclick="showTab('overview')">
+					Overview
+				</button>
+			</div>
+
+			<div id="overview" class="tab-content active">
+				<div class="info-box">
+					<h3>System Overview</h3>
+					<p>
+						EcoMind is an intelligent AI model routing system that
+						optimizes cost and carbon emissions by automatically
+						selecting the most efficient LLM for each task based on
+						complexity analysis.
+					</p>
+				</div>
+
+				<div class="diagram-container">
+					<div class="mermaid">
+						graph TB subgraph "Client Layer" WEB[Web Frontend<br />Next.js/React]
+						IDE[IntelliJ Plugin<br />Kotlin] end subgraph "Backend
+						Layer" FASTAPI[FastAPI Server<br />Python 3.10+] RAG[RAG
+						Query Cache] ML_CLASSIFIER[ML Classifier] end subgraph
+						"Data Layer" POSTGRES[(PostgreSQL)] CHROMADB[(ChromaDB)]
+						end subgraph "External" OPENAI[OpenAI API]
+						ANTHROPIC[Anthropic API] GROQ[Groq API] end WEB -->
+						FASTAPI IDE --> FASTAPI FASTAPI --> RAG RAG --> CHROMADB
+						RAG -.->|Cache Miss| ML_CLASSIFIER ML_CLASSIFIER -->
+						POSTGRES ML_CLASSIFIER --> OPENAI ML_CLASSIFIER -->
+						ANTHROPIC ML_CLASSIFIER --> GROQ
+					</div>
+				</div>
+
+				<div class="stats-grid">
+					<div class="stat-card">
+						<h3>22</h3>
+						<p>AI Models Supported</p>
+					</div>
+					<div class="stat-card">
+						<h3>3</h3>
+						<p>LLM Providers</p>
+					</div>
+					<div class="stat-card">
+						<h3>60-90%</h3>
+						<p>Cost Savings</p>
+					</div>
+					<div class="stat-card">
+						<h3>70-95%</h3>
+						<p>CO₂ Reduction</p>
+					</div>
+				</div>
+			</div>
+
+			<div id="components" class="tab-content">
+				<h2>System Components</h2>
+
+				<div class="component-card">
+					<h4>🌐 Frontend (Next.js/React)</h4>
+					<p><strong>Location:</strong> <code>/frontend</code></p>
+					<p>
+						<strong>Technology:</strong> Next.js 16+, React 19,
+						TypeScript, Tailwind CSS
+					</p>
+					<p>
+						<strong>Features:</strong> Real-time chat interface,
+						model selection, complexity visualization, savings
+						dashboard
+					</p>
+					<div>
+						<span class="tech-badge">Next.js</span>
+						<span class="tech-badge">React</span>
+						<span class="tech-badge">TypeScript</span>
+						<span class="tech-badge">Tailwind CSS</span>
+					</div>
+				</div>
+
+				<div class="component-card">
+					<h4>⚙️ Backend (FastAPI)</h4>
+					<p><strong>Location:</strong> <code>/backend</code></p>
+					<p>
+						<strong>Technology:</strong> FastAPI, Python 3.10+,
+						LangChain, Uvicorn
+					</p>
+					<p><strong>Key Modules:</strong></p>
+					<ul>
+						<li>
+							<code>server.py</code> - Main FastAPI application
+							with REST endpoints
+						</li>
+						<li>
+							<code>complexity_agent.py</code> - ML Classifier for
+							query complexity analysis (1-10 scale)
+						</li>
+						<li>
+							<code>database.py</code> - PostgreSQL connection
+							with fallback
+						</li>
+						<li>
+							<code>rag/</code> - Query caching mechanism
+							(executes BEFORE LLMs)
+						</li>
+						<li>
+							<code>savings_tracker.py</code> - Cost and CO₂
+							savings tracking
+						</li>
+					</ul>
+				</div>
+
+				<div class="component-card">
+					<h4>🗄️ Database Layer</h4>
+					<p>
+						<strong>PostgreSQL:</strong> Model metadata, complexity
+						levels, cost/CO₂ data, savings records
+					</p>
+					<p>
+						<strong>ChromaDB:</strong> Vector database for semantic
+						caching of queries and answers
+					</p>
+					<p>
+						<strong>Embeddings:</strong>
+						sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
+					</p>
+				</div>
+
+				<div class="component-card">
+					<h4>🔌 IntelliJ Plugin</h4>
+					<p>
+						<strong>Location:</strong>
+						<code>/chatbot-extension</code>
+					</p>
+					<p>
+						<strong>Technology:</strong> Kotlin, IntelliJ Platform
+						SDK
+					</p>
+					<p>
+						<strong>Features:</strong> Tool window, chat interface,
+						project-specific queries
+					</p>
+				</div>
+			</div>
+
+			<div id="flow" class="tab-content">
+				<h2>Request Flow</h2>
+
+				<div class="flow-diagram">
+					<div class="flow-step">
+						<h4>1. User Query</h4>
+						<p>User sends message via Frontend</p>
+					</div>
+					<div class="flow-step">
+						<h4>2. RAG Cache Check</h4>
+						<p>Check ChromaDB FIRST<br />(before any LLM calls)</p>
+					</div>
+					<div class="flow-step">
+						<h4>3. Complexity</h4>
+						<p>Only if cache miss<br />GPT-4o-mini analyzes</p>
+					</div>
+					<div class="flow-step">
+						<h4>4. Model Select</h4>
+						<p>
+							Only if cache miss<br />Database finds optimal model
+						</p>
+					</div>
+					<div class="flow-step">
+						<h4>5. Generate</h4>
+						<p>Only if cache miss<br />LLM generates response</p>
+					</div>
+					<div class="flow-step">
+						<h4>6. Return</h4>
+						<p>Response with metadata</p>
+					</div>
+				</div>
+
+				<div class="diagram-container">
+					<div class="mermaid">
+						sequenceDiagram participant User participant Frontend
+						participant Backend participant RAG participant
+						MLClassifier participant DB participant LLMs as LLM
+						Providers<br />(OpenAI/Anthropic/Groq) User->>Frontend:
+						Send Message Frontend->>Backend: POST /chat
+						Backend->>RAG: Check Query Cache (FIRST) alt Cache Hit
+						(similarity > 0.8) RAG-->>Backend: Cached Answer
+						Backend-->>Frontend: Return (0 cost, 0 CO₂) note over
+						RAG,LLMs: SKIP all LLM calls else Cache Miss
+						Backend->>MLClassifier: Analyze Query
+						MLClassifier->>LLMs: GPT-4o-mini (OpenAI)
+						LLMs-->>MLClassifier: Score (1-10) Backend->>DB: Get
+						Model Backend->>LLMs: Generate Response LLMs-->>Backend:
+						Response Backend-->>Frontend: Response end
+					</div>
+				</div>
+			</div>
+
+			<div id="layers" class="tab-content">
+				<h2>Three-Layer Optimization</h2>
+
+				<div class="info-box">
+					<h3>
+						Layer 1: RAG Query Cache (ChromaDB) - EXECUTES FIRST
+					</h3>
+					<ul>
+						<li>Semantic similarity search (threshold: 0.8)</li>
+						<li>Instant response for similar queries</li>
+						<li>Zero cost, zero CO₂ emissions</li>
+						<li>If cache hit: SKIP all LLM calls (Layers 2 & 3)</li>
+					</ul>
+				</div>
+
+				<div class="info-box">
+					<h3>Layer 2: ML Classifier - Only if cache miss</h3>
+					<ul>
+						<li>
+							ML Classifier (GPT-4o-mini) classifies query
+							complexity (1-10)
+						</li>
+						<li>
+							Considers: code complexity, domain expertise,
+							reasoning needs
+						</li>
+						<li>
+							Low-cost classification before expensive generation
+						</li>
+						<li>
+							Connects to all LLM providers (OpenAI, Anthropic,
+							Groq)
+						</li>
+					</ul>
+				</div>
+
+				<div class="info-box">
+					<h3>Layer 3: Model Routing - Only if cache miss</h3>
+					<ul>
+						<li>Selects optimal model based on complexity</li>
+						<li>Prioritizes cost and energy efficiency</li>
+						<li>22 models across 3 providers</li>
+					</ul>
+				</div>
+
+				<div class="diagram-container">
+					<div class="mermaid">
+						flowchart TD START[User Query] --> L1{Layer 1: RAG Query
+						Cache<br />CHECK FIRST} L1 -->|Hit| CACHE[💰 $0.00<br />🌍
+						0g CO₂<br />SKIP LLM Calls] L1 -->|Miss| L2[Layer 2:
+						Complexity<br />Only if cache miss] L2 --> SCORE[Score:
+						1-10] SCORE --> L3[Layer 3: Routing<br />Only if cache
+						miss] L3 --> MODEL[Select Model] MODEL --> LLM[Generate
+						Response]
+					</div>
+				</div>
+			</div>
+
+			<div id="tech" class="tab-content">
+				<h2>Technology Stack</h2>
+
+				<div class="component-card">
+					<h4>Backend Stack</h4>
+					<ul>
+						<li><strong>Language:</strong> Python 3.10+</li>
+						<li><strong>Framework:</strong> FastAPI 0.122+</li>
+						<li><strong>LLM:</strong> LangChain 1.1+</li>
+						<li>
+							<strong>Providers:</strong> OpenAI, Anthropic, Groq
+						</li>
+						<li>
+							<strong>Database:</strong> PostgreSQL 15 (psycopg2)
+						</li>
+						<li><strong>Vector DB:</strong> ChromaDB 1.3+</li>
+						<li>
+							<strong>Embeddings:</strong> sentence-transformers
+							5.1+
+						</li>
+						<li><strong>Server:</strong> Uvicorn</li>
+					</ul>
+				</div>
+
+				<div class="component-card">
+					<h4>Frontend Stack</h4>
+					<ul>
+						<li><strong>Framework:</strong> Next.js 16+</li>
+						<li><strong>Language:</strong> TypeScript 5+</li>
+						<li><strong>UI Library:</strong> React 19+</li>
+						<li><strong>Styling:</strong> Tailwind CSS 4.1+</li>
+						<li>
+							<strong>Components:</strong> shadcn/ui (Radix UI)
+						</li>
+						<li><strong>Charts:</strong> Recharts 2.15+</li>
+					</ul>
+				</div>
+
+				<div class="component-card">
+					<h4>Infrastructure</h4>
+					<ul>
+						<li>
+							<strong>Containerization:</strong> Docker Compose
+						</li>
+						<li><strong>Database:</strong> PostgreSQL 15</li>
+						<li>
+							<strong>Vector DB:</strong> ChromaDB (persistent)
+						</li>
+					</ul>
+				</div>
+
+				<div class="component-card">
+					<h4>Extension</h4>
+					<ul>
+						<li><strong>Language:</strong> Kotlin</li>
+						<li>
+							<strong>Platform:</strong> IntelliJ Platform SDK
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			mermaid.initialize({ startOnLoad: true, theme: "default" });
+
+			function showTab(tabName) {
+				// Hide all tabs
+				document.querySelectorAll(".tab").forEach((tab) => {
+					tab.classList.remove("active");
+				});
+				document.querySelectorAll(".tab-content").forEach((content) => {
+					content.classList.remove("active");
+				});
+
+				// Show selected tab
+				event.target.classList.add("active");
+				document.getElementById(tabName).classList.add("active");
+
+				// Reinitialize mermaid for new diagrams
+				mermaid.init(undefined, document.getElementById(tabName));
+			}
+		</script>
+	</body>
+</html>
