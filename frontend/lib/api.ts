@@ -40,6 +40,16 @@ export interface ChatResponse {
       co2: number
     }
   }
+  cache_savings?: {
+    cost_saved: number
+    cost_saved_input: number
+    cost_saved_output: number
+    co2_saved: number
+    cost_per_million_input_tokens: number
+    cost_per_million_output_tokens: number
+    model_that_would_be_used: Model
+    similarity_score: number
+  }
 }
 
 export interface ComplexityResponse {

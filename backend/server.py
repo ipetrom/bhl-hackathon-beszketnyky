@@ -55,6 +55,7 @@ class ChatResponse(BaseModel):
     model_used: str
     complexity_detected: int
     model_suggestion: Optional[Dict[str, Any]] = None  # Suggestion if user picked expensive model
+    cache_savings: Optional[Dict[str, Any]] = None  # Savings when RAG cache is used
 
 
 class ComplexityRequest(BaseModel):
@@ -291,6 +292,53 @@ async def chat_completion(request: ChatRequest):
                     cached_match = rag_results[0]
                     print(f"RAG Cache Hit! Similarity: {cached_match.get('similarity_score', 0)}")
                     
+                    # Calculate savings based on what model would have been used
+                    db = get_database()
+                    model_that_would_be_used = None
+                    
+                    # Determine which model would have been used
+                    if request.model_id:
+                        model_that_would_be_used = db.get_model_by_id(request.model_id)
+                    else:
+                        # Auto-select based on complexity (analyze first)
+                        agent = get_complexity_agent()
+                        complexity = agent.analyze_complexity(user_message)
+                        if complexity is None:
+                            complexity = 5  # Default to medium complexity
+                        model_that_would_be_used = db.get_optimal_model_for_complexity(complexity)
+                    
+                    # Calculate cache savings
+                    cache_savings = None
+                    if model_that_would_be_used:
+                        # Convert costs from per 1K tokens to per million tokens (multiply by 1000)
+                        # Estimate: assume average query uses ~1K input tokens and ~2K output tokens
+                        # This is a reasonable estimate for typical queries
+                        estimated_input_tokens = 1000
+                        estimated_output_tokens = 2000
+                        
+                        # Calculate cost savings (costs in CSV are per 1K tokens)
+                        cost_saved_input = (model_that_would_be_used.cost_input_tokens * estimated_input_tokens) / 1000
+                        cost_saved_output = (model_that_would_be_used.cost_output_tokens * estimated_output_tokens) / 1000
+                        total_cost_saved = cost_saved_input + cost_saved_output
+                        
+                        # CO2 savings (CO2 in CSV is per request/query)
+                        co2_saved = model_that_would_be_used.co2
+                        
+                        # Convert to per million tokens for display
+                        cost_per_million_input = model_that_would_be_used.cost_input_tokens * 1000
+                        cost_per_million_output = model_that_would_be_used.cost_output_tokens * 1000
+                        
+                        cache_savings = {
+                            "cost_saved": round(total_cost_saved, 4),
+                            "cost_saved_input": round(cost_saved_input, 4),
+                            "cost_saved_output": round(cost_saved_output, 4),
+                            "co2_saved": round(co2_saved, 2),
+                            "cost_per_million_input_tokens": round(cost_per_million_input, 2),
+                            "cost_per_million_output_tokens": round(cost_per_million_output, 2),
+                            "model_that_would_be_used": model_to_dict(model_that_would_be_used),
+                            "similarity_score": cached_match.get('similarity_score', 0)
+                        }
+                    
                     # Return cached response immediately
                     return ChatResponse(
                         message=Message(
@@ -299,7 +347,8 @@ async def chat_completion(request: ChatRequest):
                         ),
                         model_used="rag-cache",  # Indicate it came from cache
                         complexity_detected=0,   # Complexity irrelevant for cache hit
-                        model_suggestion=None
+                        model_suggestion=None,
+                        cache_savings=cache_savings
                     )
             except Exception as e:
                 print(f"RAG Cache check failed: {e}")

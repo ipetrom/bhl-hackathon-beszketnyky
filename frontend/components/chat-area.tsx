@@ -41,7 +41,11 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
   const [jetBrainsSelectedModel, setJetBrainsSelectedModel] = useState<Model | null>(null)
   const jetBrainsTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null)
-  const [ragSavings, setRagSavings] = useState<{ cost: number; co2: number } | null>(null)
+  const [ragSavings, setRagSavings] = useState<{ 
+    cost: number
+    co2: number
+    modelName?: string
+  } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const dropdownPortalRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -171,18 +175,15 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
           setOriginalModel(selectedModel)
         }
 
-        // Check for RAG cache hit
-        if (response.model_used === "rag-cache") {
-          // Calculate savings based on the selected model (or default if none selected)
-          // We assume the savings are equal to the cost of running the selected model
-          // since RAG cache is effectively free compared to LLM
-          const modelToCompare = selectedModel || models[0]
-          if (modelToCompare) {
-            setRagSavings({
-              cost: modelToCompare.cost_input_tokens,
-              co2: modelToCompare.co2
-            })
-          }
+        // Check for RAG cache hit - use savings from backend response
+        if (response.model_used === "rag-cache" && response.cache_savings) {
+          setRagSavings({
+            cost: response.cache_savings.cost_saved,
+            co2: response.cache_savings.co2_saved,
+            modelName: response.cache_savings.model_that_would_be_used.name
+          })
+        } else {
+          setRagSavings(null)
         }
       } else {
         // Fallback error message
@@ -699,24 +700,35 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                       <h4 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
                         Smart Cache Hit!
                       </h4>
-                      <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+                      <p className="text-sm text-green-800 dark:text-green-200 mb-2">
                         We found a similar answer in our database. By using the cached response instead of calling the LLM, you saved resources!
                       </p>
-                      <div className="flex gap-4 text-xs text-green-700 dark:text-green-400">
+                      {ragSavings.modelName && (
+                        <p className="text-xs text-green-700 dark:text-green-300 mb-3">
+                          Model that would have been used: <span className="font-semibold">{ragSavings.modelName}</span>
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-4 text-xs text-green-700 dark:text-green-400">
                         {ragSavings.cost > 0 && (
-                          <div>💰 Saved ${ragSavings.cost.toFixed(2)}/1K tokens</div>
+                          <div className="flex items-center gap-1">
+                            <span>💰</span>
+                            <span>Saved ${ragSavings.cost.toFixed(2)} (estimated)</span>
+                          </div>
                         )}
                         {ragSavings.co2 > 0 && (
-                          <div>🌱 Saved {ragSavings.co2.toFixed(2)}g CO₂</div>
+                          <div className="flex items-center gap-1">
+                            <span>🌱</span>
+                            <span>Saved {ragSavings.co2.toFixed(2)}g CO₂</span>
+                          </div>
                         )}
                       </div>
                     </div>
                     <button
                       onClick={() => setRagSavings(null)}
-                      className="text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-200"
+                      className="text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                      aria-label="Dismiss"
                     >
-                      <span className="sr-only">Dismiss</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
