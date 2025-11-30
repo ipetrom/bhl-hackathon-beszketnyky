@@ -13,10 +13,14 @@ from dotenv import load_dotenv
 from database import get_database, ModelDB
 from complexity_agent import get_complexity_agent
 from model_factory import get_model_factory
+from rag.router import router as rag_router
 
 load_dotenv()
 
 app = FastAPI(title="Chatbot Backend API")
+
+# Include RAG router
+app.include_router(rag_router)
 
 # CORS middleware for frontend communication
 app.add_middleware(
