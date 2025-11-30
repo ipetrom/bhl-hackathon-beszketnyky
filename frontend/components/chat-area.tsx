@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Plus, ArrowUp, Code, ChevronDown, Search, Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -24,7 +25,9 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
   const [modelSearch, setModelSearch] = useState("")
   const [isCodeMode, setIsCodeMode] = useState(false)
   const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch models on component mount
@@ -57,6 +60,15 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
   useEffect(() => {
     if (isModelOpen && searchInputRef.current) {
       searchInputRef.current.focus()
+    }
+    if (isModelOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      })
+    } else {
+      setDropdownPosition(null)
     }
   }, [isModelOpen])
 
@@ -181,6 +193,7 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                     <div className="flex items-center gap-2">
                       <div className="relative" ref={dropdownRef}>
                         <button
+                          ref={buttonRef}
                           type="button"
                           onClick={() => setIsModelOpen(!isModelOpen)}
                           disabled={isLoadingModels}
@@ -201,8 +214,14 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                           )}
                         </button>
 
-                        {isModelOpen && (
-                          <div className="absolute bottom-full mb-2 right-0 w-64 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                        {isModelOpen && dropdownPosition && typeof window !== "undefined" && createPortal(
+                          <div
+                            className="fixed w-64 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50"
+                            style={{
+                              top: `${dropdownPosition.top}px`,
+                              right: `${dropdownPosition.right}px`,
+                            }}
+                          >
                             {/* Search input */}
                             <div className="p-2 border-b border-border">
                               <div className="relative">
@@ -218,7 +237,7 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                               </div>
                             </div>
                             {/* Model list */}
-                            <div className="max-h-64 overflow-y-auto p-1">
+                            <div className="max-h-96 overflow-y-auto p-1">
                               {filteredModels.length > 0 ? (
                                 filteredModels.map((model) => (
                                   <button
@@ -227,21 +246,24 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                                     onClick={() => handleSelectModel(model)}
                                     className={cn(
                                       "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left hover:bg-secondary transition-colors",
-                                      selectedModel.id === model.id && "bg-secondary",
+                                      selectedModel?.id === model.id && "bg-secondary",
                                     )}
                                   >
-                                    <div>
+                                    <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-foreground">{model.name}</p>
-                                      <p className="text-xs text-muted-foreground">{model.description}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {model.provider} • Level {model.complexity_level} • CO₂: {model.co2}g
+                                      </p>
                                     </div>
-                                    {selectedModel.id === model.id && <Check className="h-4 w-4 text-primary" />}
+                                    {selectedModel?.id === model.id && <Check className="h-4 w-4 text-primary flex-shrink-0 ml-2" />}
                                   </button>
                                 ))
                               ) : (
                                 <p className="text-sm text-muted-foreground text-center py-4">No models found</p>
                               )}
                             </div>
-                          </div>
+                          </div>,
+                          document.body
                         )}
                       </div>
                       <Button
