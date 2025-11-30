@@ -338,18 +338,31 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                 }
             }
 
-            val home = System.getenv("USERPROFILE") ?: System.getProperty("user.home")
+            val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+            val home = System.getProperty("user.home")
+            
             if (home != null) {
-                val candidates = listOf(
-                    File(home, ".local/bin/claude.exe"),
-                    File(home, ".local/bin/claude")
-                )
-                val found = candidates.firstOrNull { it.exists() && it.isFile }
+                val candidates = mutableListOf<File>()
+                
+                // Platform-specific candidates
+                if (isWindows) {
+                    candidates.add(File(home, ".local/bin/claude.exe"))
+                    candidates.add(File(home, ".local/bin/claude"))
+                } else {
+                    // macOS/Linux: check common installation locations
+                    candidates.add(File(home, ".local/bin/claude"))
+                    candidates.add(File("/usr/local/bin/claude"))
+                    candidates.add(File(home, "bin/claude"))
+                    candidates.add(File("/opt/homebrew/bin/claude")) // Homebrew on Apple Silicon
+                }
+                
+                val found = candidates.firstOrNull { it.exists() && it.isFile && it.canExecute() }
                 if (found != null) {
                     return found.absolutePath
                 }
             }
 
+            // Fallback: assume it's in PATH
             return "claude"
         }
 
@@ -396,24 +409,48 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                         }
                     }
 
-                    val home = System.getenv("USERPROFILE") ?: System.getProperty("user.home")
+                    // Ensure PATH includes common installation directories
+                    val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+                    val pathKey = if (isWindows) "Path" else "PATH"
+                    val currentPath = env[pathKey] ?: env["PATH"] ?: ""
+                    val pathSeparator = if (isWindows) ";" else ":"
+                    val home = System.getProperty("user.home")
+                    
+                    val pathsToAdd = mutableListOf<String>()
+                    
                     if (home != null) {
+                        // Add ~/.local/bin
                         val localBinPath = File(home, ".local/bin")
                         if (localBinPath.exists() && localBinPath.isDirectory) {
-                            val isWindows = System.getProperty("os.name").lowercase().contains("windows")
-                            val pathKey = if (isWindows) "Path" else "PATH"
-                            val currentPath = env[pathKey] ?: env["PATH"] ?: ""
-                            val localBinAbsolute = localBinPath.absolutePath
-
-                            if (!currentPath.split(if (isWindows) ";" else ":").contains(localBinAbsolute)) {
-                                val pathSeparator = if (isWindows) ";" else ":"
-                                env[pathKey] = if (currentPath.isEmpty()) {
-                                    localBinAbsolute
-                                } else {
-                                    "$currentPath$pathSeparator$localBinAbsolute"
+                            pathsToAdd.add(localBinPath.absolutePath)
+                        }
+                        
+                        // On macOS/Linux, also check other common locations
+                        if (!isWindows) {
+                            val commonPaths = listOf(
+                                File(home, "bin"),
+                                File("/usr/local/bin"),
+                                File("/opt/homebrew/bin") // Homebrew on Apple Silicon
+                            )
+                            commonPaths.forEach { path ->
+                                if (path.exists() && path.isDirectory) {
+                                    pathsToAdd.add(path.absolutePath)
                                 }
                             }
                         }
+                    }
+                    
+                    // Add paths that aren't already in PATH
+                    val existingPaths = currentPath.split(pathSeparator).toSet()
+                    val newPaths = pathsToAdd.filter { it !in existingPaths }
+                    
+                    if (newPaths.isNotEmpty()) {
+                        val updatedPath = if (currentPath.isEmpty()) {
+                            newPaths.joinToString(pathSeparator)
+                        } else {
+                            "$currentPath$pathSeparator${newPaths.joinToString(pathSeparator)}"
+                        }
+                        env[pathKey] = updatedPath
                     }
 
                     val process = pb.start()
