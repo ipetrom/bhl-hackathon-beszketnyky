@@ -1,0 +1,14 @@
+<idea-plugin>
+    <id>com.greenassistant</id>
+    <name>GreenAssistant</name>
+    <vendor email="beszketnyky@support.com">Beszketnyky Team</vendor>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow
+                id="GreenAssistant"
+                anchor="right"
+                factoryClass="com.greenassistant.GreenAssistantToolWindowFactory"/>
+    </extensions>
+</idea-plugin>
