@@ -34,6 +34,7 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
   const [pendingQuery, setPendingQuery] = useState<string | null>(null)
   const [originalModel, setOriginalModel] = useState<Model | null>(null)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null)
+  const [ragSavings, setRagSavings] = useState<{ cost: number; co2: number } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const dropdownPortalRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -60,7 +61,7 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
       const target = event.target as Node
       const isClickInsideButton = buttonRef.current?.contains(target)
       const isClickInsideDropdown = dropdownPortalRef.current?.contains(target)
-      
+
       if (!isClickInsideButton && !isClickInsideDropdown) {
         setIsModelOpen(false)
         setModelSearch("")
@@ -102,6 +103,7 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
     setInput("")
     setIsSending(true)
     setModelSuggestion(null)
+    setRagSavings(null)
 
     try {
       // Prepare messages for API
@@ -140,6 +142,20 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
           setPendingQuery(userContent)
           // Store the originally selected model
           setOriginalModel(selectedModel)
+        }
+
+        // Check for RAG cache hit
+        if (response.model_used === "rag-cache") {
+          // Calculate savings based on the selected model (or default if none selected)
+          // We assume the savings are equal to the cost of running the selected model
+          // since RAG cache is effectively free compared to LLM
+          const modelToCompare = selectedModel || models[0]
+          if (modelToCompare) {
+            setRagSavings({
+              cost: modelToCompare.cost_input_tokens,
+              co2: modelToCompare.co2
+            })
+          }
         }
       } else {
         // Fallback error message
@@ -208,7 +224,7 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
               </Button>
             )}
           </div>
-          
+
           {/* Chat Messages */}
           <ScrollArea className="flex-1 p-6">
             <div className="max-w-3xl mx-auto space-y-4">
@@ -264,11 +280,11 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                             if (suggested && pendingQuery) {
                               // Clear the suggestion UI immediately
                               setModelSuggestion(null)
-                              
+
                               // Remove placeholder message immediately (keep user message)
                               const placeholderText = "Please review the model suggestion below before proceeding with your request."
                               let messagesWithoutPlaceholder: ChatMessage[] = []
-                              
+
                               if (activeChat) {
                                 // Remove only the placeholder message if it exists (keep user message)
                                 const lastMessage = activeChat.messages[activeChat.messages.length - 1]
@@ -282,27 +298,27 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                                   messagesWithoutPlaceholder = activeChat.messages
                                 }
                               }
-                              
+
                               // Switch to suggested model
                               setSelectedModel(suggested)
-                              
+
                               // Re-send the query with the new model
                               setIsSending(true)
-                              
+
                               try {
                                 // Prepare messages for API - use all messages without placeholder
                                 // The user message is already in messagesWithoutPlaceholder
-                                const contextMessages = messagesWithoutPlaceholder.map(msg => ({ 
-                                  role: msg.role, 
-                                  content: msg.content 
+                                const contextMessages = messagesWithoutPlaceholder.map(msg => ({
+                                  role: msg.role,
+                                  content: msg.content
                                 }))
-                                
+
                                 // Ensure the pending query is the last message
                                 const lastContextMessage = contextMessages[contextMessages.length - 1]
                                 if (!lastContextMessage || lastContextMessage.role !== "user" || lastContextMessage.content !== pendingQuery) {
                                   contextMessages.push({ role: "user" as const, content: pendingQuery })
                                 }
-                                
+
                                 // Send to backend with new model
                                 // Skip suggestion check since user explicitly chose this model
                                 const response = await sendChatMessage({
@@ -311,7 +327,7 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                                   user_selected: true,
                                   skip_suggestion_check: true,
                                 })
-                                
+
                                 if (response) {
                                   // Create assistant message (user message already exists in chat)
                                   const assistantMessage: ChatMessage = {
@@ -319,13 +335,13 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                                     role: "assistant",
                                     content: response.message.content,
                                   }
-                                  
+
                                   // Add the assistant message to the chat (user message is already there)
                                   const updatedMessages = [...messagesWithoutPlaceholder, assistantMessage]
                                   if (onUpdateChat) {
                                     onUpdateChat(activeChat!.id, updatedMessages)
                                   }
-                                  
+
                                   // Clear pending query and original model
                                   // Don't show suggestions again - user explicitly chose this model
                                   setPendingQuery(null)
@@ -348,11 +364,11 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                             if (originalModel && pendingQuery) {
                               // Clear the suggestion UI immediately
                               setModelSuggestion(null)
-                              
+
                               // Remove placeholder message immediately (keep user message)
                               const placeholderText = "Please review the model suggestion below before proceeding with your request."
                               let messagesWithoutPlaceholder: ChatMessage[] = []
-                              
+
                               if (activeChat) {
                                 // Remove only the placeholder message if it exists (keep user message)
                                 const lastMessage = activeChat.messages[activeChat.messages.length - 1]
@@ -366,26 +382,26 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                                   messagesWithoutPlaceholder = activeChat.messages
                                 }
                               }
-                              
+
                               // Switch back to original model
                               setSelectedModel(originalModel)
-                              
+
                               // Generate response with original model
                               setIsSending(true)
-                              
+
                               try {
                                 // Prepare messages for API - use all messages without placeholder
-                                const contextMessages = messagesWithoutPlaceholder.map(msg => ({ 
-                                  role: msg.role, 
-                                  content: msg.content 
+                                const contextMessages = messagesWithoutPlaceholder.map(msg => ({
+                                  role: msg.role,
+                                  content: msg.content
                                 }))
-                                
+
                                 // Ensure the pending query is the last message
                                 const lastContextMessage = contextMessages[contextMessages.length - 1]
                                 if (!lastContextMessage || lastContextMessage.role !== "user" || lastContextMessage.content !== pendingQuery) {
                                   contextMessages.push({ role: "user" as const, content: pendingQuery })
                                 }
-                                
+
                                 // Send to backend with original model
                                 // Skip suggestion check since user explicitly chose to keep current model
                                 const response = await sendChatMessage({
@@ -394,7 +410,7 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                                   user_selected: true,
                                   skip_suggestion_check: true,
                                 })
-                                
+
                                 if (response) {
                                   // Create assistant message (user message already exists in chat)
                                   const assistantMessage: ChatMessage = {
@@ -402,13 +418,13 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                                     role: "assistant",
                                     content: response.message.content,
                                   }
-                                  
+
                                   // Add the assistant message to the chat (user message is already there)
                                   const updatedMessages = [...messagesWithoutPlaceholder, assistantMessage]
                                   if (onUpdateChat) {
                                     onUpdateChat(activeChat!.id, updatedMessages)
                                   }
-                                  
+
                                   // Clear pending query and original model
                                   // Don't show suggestions again - user explicitly chose to keep current model
                                   setPendingQuery(null)
@@ -441,6 +457,40 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                         </button>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* RAG Savings Alert */}
+              {ragSavings && (
+                <div className="mt-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                      <span className="text-lg">⚡</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
+                        Smart Cache Hit!
+                      </h4>
+                      <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+                        We found a similar answer in our database. By using the cached response instead of calling the LLM, you saved resources!
+                      </p>
+                      <div className="flex gap-4 text-xs text-green-700 dark:text-green-400">
+                        {ragSavings.cost > 0 && (
+                          <div>💰 Saved ${ragSavings.cost.toFixed(2)}/1K tokens</div>
+                        )}
+                        {ragSavings.co2 > 0 && (
+                          <div>🌱 Saved {ragSavings.co2.toFixed(2)}g CO₂</div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setRagSavings(null)}
+                      className="text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-200"
+                    >
+                      <span className="sr-only">Dismiss</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                   </div>
                 </div>
               )}

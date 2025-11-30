@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from database import get_database, ModelDB
 from complexity_agent import get_complexity_agent
 from model_factory import get_model_factory
-from rag.router import router as rag_router
+from rag.router import router as rag_router, retriever, DEFAULT_SIMILARITY_THRESHOLD
 
 load_dotenv()
 
@@ -273,6 +273,36 @@ async def chat_completion(request: ChatRequest):
         if not user_message:
             raise HTTPException(status_code=400, detail="No user message found")
 
+        # ==================================================================================
+        # RAG CACHING LAYER
+        # Check if we have a similar query in our RAG database before calling expensive LLM
+        # ==================================================================================
+        if retriever:
+            try:
+                # Use the same threshold as the RAG router endpoint
+                rag_results = retriever.retrieve_with_threshold(
+                    query=user_message,
+                    threshold=DEFAULT_SIMILARITY_THRESHOLD,
+                    k=1
+                )
+                
+                if rag_results:
+                    cached_match = rag_results[0]
+                    print(f"RAG Cache Hit! Similarity: {cached_match.get('similarity_score', 0)}")
+                    
+                    # Return cached response immediately
+                    return ChatResponse(
+                        message=Message(
+                            role="assistant", 
+                            content=cached_match['answer']
+                        ),
+                        model_used="rag-cache",  # Indicate it came from cache
+                        complexity_detected=0,   # Complexity irrelevant for cache hit
+                        model_suggestion=None
+                    )
+            except Exception as e:
+                print(f"RAG Cache check failed: {e}")
+                
         # Analyze complexity FIRST (before any model generation)
         agent = get_complexity_agent()
         complexity = agent.analyze_complexity(user_message)
