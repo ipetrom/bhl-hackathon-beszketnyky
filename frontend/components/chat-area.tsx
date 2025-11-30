@@ -3,11 +3,12 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { Plus, ArrowUp, Code, ChevronDown, Search, Check } from "lucide-react"
+import { Plus, ArrowUp, Code, ChevronDown, Search, Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Chat } from "@/app/page"
 import { cn } from "@/lib/utils"
+import { fetchModels, type Model } from "@/lib/api"
 
 interface ChatAreaProps {
   activeChat: Chat | null
@@ -15,15 +16,32 @@ interface ChatAreaProps {
   sidebarOpen: boolean
 }
 
-const models = [{ id: "gpt-4o", name: "GPT-4o", description: "Most capable model" }]
-
 export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaProps) {
   const [input, setInput] = useState("")
-  const [selectedModel, setSelectedModel] = useState(models[0])
+  const [models, setModels] = useState<Model[]>([])
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null)
   const [isModelOpen, setIsModelOpen] = useState(false)
   const [modelSearch, setModelSearch] = useState("")
+  const [isCodeMode, setIsCodeMode] = useState(false)
+  const [isLoadingModels, setIsLoadingModels] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Fetch models on component mount
+  useEffect(() => {
+    async function loadModels() {
+      setIsLoadingModels(true)
+      const fetchedModels = await fetchModels()
+      setModels(fetchedModels)
+      // Set default model (lowest complexity)
+      if (fetchedModels.length > 0) {
+        const defaultModel = fetchedModels.sort((a, b) => a.complexity_level - b.complexity_level)[0]
+        setSelectedModel(defaultModel)
+      }
+      setIsLoadingModels(false)
+    }
+    loadModels()
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -45,7 +63,8 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
   const filteredModels = models.filter(
     (model) =>
       model.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
-      model.description.toLowerCase().includes(modelSearch.toLowerCase()),
+      model.provider.toLowerCase().includes(modelSearch.toLowerCase()) ||
+      model.id.toLowerCase().includes(modelSearch.toLowerCase()),
   )
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -57,10 +76,10 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
   }
 
   const handleCodePrompt = () => {
-    setInput("Help me write code for ")
+    setIsCodeMode(!isCodeMode)
   }
 
-  const handleSelectModel = (model: (typeof models)[0]) => {
+  const handleSelectModel = (model: Model) => {
     setSelectedModel(model)
     setIsModelOpen(false)
     setModelSearch("")
@@ -148,7 +167,12 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                         type="button"
                         variant="ghost"
                         onClick={handleCodePrompt}
-                        className="h-8 gap-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary px-2"
+                        className={cn(
+                          "h-8 gap-1.5 px-2 transition-all",
+                          isCodeMode
+                            ? "bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 text-white hover:opacity-90 border-0"
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                        )}
                       >
                         <Code className="h-4 w-4" />
                         <span className="text-sm">Code</span>
@@ -159,10 +183,22 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                         <button
                           type="button"
                           onClick={() => setIsModelOpen(!isModelOpen)}
-                          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-secondary"
+                          disabled={isLoadingModels}
+                          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {selectedModel.name}
-                          <ChevronDown className={cn("h-3 w-3 transition-transform", isModelOpen && "rotate-180")} />
+                          {isLoadingModels ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Loading...</span>
+                            </>
+                          ) : selectedModel ? (
+                            selectedModel.name
+                          ) : (
+                            "No models"
+                          )}
+                          {!isLoadingModels && (
+                            <ChevronDown className={cn("h-3 w-3 transition-transform", isModelOpen && "rotate-180")} />
+                          )}
                         </button>
 
                         {isModelOpen && (
