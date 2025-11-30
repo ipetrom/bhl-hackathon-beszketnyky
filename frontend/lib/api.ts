@@ -153,3 +153,91 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
     return null
   }
 }
+
+/**
+ * Record a savings entry when user switches models
+ */
+export async function recordSavings(data: {
+  original_model_id: string
+  original_model_name: string
+  suggested_model_id: string
+  suggested_model_name: string
+  cost_saved_input: number
+  cost_saved_output: number
+  co2_saved: number
+  complexity_level: number
+  query_preview?: string
+}): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/savings/record?${new URLSearchParams(data as any)}`, {
+      method: "POST",
+    })
+    return response.ok
+  } catch (error) {
+    console.error("Error recording savings:", error)
+    return false
+  }
+}
+
+/**
+ * Get all savings entries
+ */
+export async function getAllSavings(): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/savings/all`)
+    if (!response.ok) throw new Error("Failed to fetch savings")
+    const data = await response.json()
+    return data.savings || []
+  } catch (error) {
+    console.error("Error fetching savings:", error)
+    return []
+  }
+}
+
+/**
+ * Get total savings
+ */
+export async function getTotalSavings(): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/savings/total`)
+    if (!response.ok) throw new Error("Failed to fetch total savings")
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching total savings:", error)
+    return {
+      total_cost: 0,
+      total_co2: 0,
+      total_switches: 0,
+    }
+  }
+}
+
+/**
+ * Get savings by period
+ */
+export async function getSavingsByPeriod(days: number = 30): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/savings/by-period?days=${days}`)
+    if (!response.ok) throw new Error("Failed to fetch period savings")
+    const data = await response.json()
+    return data.data || []
+  } catch (error) {
+    console.error("Error fetching period savings:", error)
+    return []
+  }
+}
+
+/**
+ * Get model switch statistics
+ */
+export async function getModelStats(): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/savings/model-stats`)
+    if (!response.ok) throw new Error("Failed to fetch model stats")
+    const data = await response.json()
+    return data.stats || []
+  } catch (error) {
+    console.error("Error fetching model stats:", error)
+    return []
+  }
+}

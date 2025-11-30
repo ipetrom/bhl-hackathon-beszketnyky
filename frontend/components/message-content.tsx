@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
@@ -102,10 +102,11 @@ export function MessageContent({ content, isUser }: MessageContentProps) {
               const cleanedCode = codeString.replace(/\n$/, "")
               const language = match ? match[1] : "text"
               
+              // Return CodeBlock wrapped in a fragment to prevent p tag wrapping
               return <CodeBlock code={cleanedCode} language={language} />
             }
             
-            // Inline code
+            // Inline code - must stay as <code> element (not div)
             return (
               <code
                 className={cn(
@@ -119,11 +120,56 @@ export function MessageContent({ content, isUser }: MessageContentProps) {
             )
           },
           pre({ children, ...props }: any) {
-            // Pre tags wrap code blocks - ReactMarkdown handles this automatically
-            // We just need to render children (which will be the code component)
-            return <>{children}</>
+            // Pre tags wrap code blocks - ReactMarkdown creates <pre><code> for code blocks
+            // We need to check if the child is a CodeBlock (div) and handle it properly
+            const childrenArray = React.Children.toArray(children)
+            
+            // If children contain a CodeBlock (div), return it directly without pre wrapper
+            const hasCodeBlock = childrenArray.some((child: any) => {
+              return child?.type?.name === 'CodeBlock' || 
+                     (typeof child === 'object' && child?.props?.children?.type?.name === 'CodeBlock')
+            })
+            
+            if (hasCodeBlock) {
+              return <>{children}</>
+            }
+            
+            // Regular pre tag
+            return <pre className="my-2">{children}</pre>
           },
-          p({ children }) {
+          p({ children, ...props }: any) {
+            // Check if this paragraph contains a code block (div element) or pre tag
+            // ReactMarkdown sometimes wraps code blocks in p tags, which is invalid HTML
+            const childrenArray = React.Children.toArray(children)
+            
+            // Check if any child is a div, pre, or CodeBlock component
+            const hasBlockElement = childrenArray.some((child: any) => {
+              if (typeof child === 'object' && child !== null) {
+                // Check if it's a div or pre element
+                if (child.type === 'div' || child.type === 'pre' || 
+                    (typeof child.type === 'string' && (child.type === 'div' || child.type === 'pre'))) {
+                  return true
+                }
+                // Check if it's our CodeBlock component
+                if (child.type?.name === 'CodeBlock') {
+                  return true
+                }
+                // Check if it's a pre tag containing CodeBlock
+                if (child.type === 'pre' || child.props?.children) {
+                  const nested = React.Children.toArray(child.props?.children || [])
+                  if (nested.some((n: any) => n?.type?.name === 'CodeBlock' || n?.type === 'div')) {
+                    return true
+                  }
+                }
+              }
+              return false
+            })
+            
+            // If paragraph contains a block element (code block), use div wrapper instead
+            if (hasBlockElement) {
+              return <div className="my-1.5 leading-relaxed">{children}</div>
+            }
+            
             return <p className="my-1.5 leading-relaxed">{children}</p>
           },
           ul({ children }) {

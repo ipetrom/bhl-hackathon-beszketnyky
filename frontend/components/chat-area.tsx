@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Chat } from "@/app/page"
 import { cn } from "@/lib/utils"
-import { fetchModels, sendChatMessage, type Model } from "@/lib/api"
+import { fetchModels, sendChatMessage, recordSavings, type Model } from "@/lib/api"
 import type { Message as ChatMessage, ModelSuggestion } from "@/app/page"
 import { MessageContent } from "@/components/message-content"
 import Image from "next/image"
@@ -552,6 +552,21 @@ export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat
                                   const updatedMessages = [...messagesWithoutPlaceholder, assistantMessage]
                                   if (onUpdateChat) {
                                     onUpdateChat(activeChat!.id, updatedMessages)
+                                  }
+
+                                  // Record savings when user switches to cheaper model
+                                  if (originalModel && modelSuggestion.savings && !modelSuggestion.is_under_engineered) {
+                                    await recordSavings({
+                                      original_model_id: originalModel.id,
+                                      original_model_name: originalModel.name,
+                                      suggested_model_id: suggested.id,
+                                      suggested_model_name: suggested.name,
+                                      cost_saved_input: modelSuggestion.savings.cost_input_tokens,
+                                      cost_saved_output: modelSuggestion.savings.cost_output_tokens || 0,
+                                      co2_saved: modelSuggestion.savings.co2,
+                                      complexity_level: response.complexity_detected || 5,
+                                      query_preview: pendingQuery.substring(0, 100),
+                                    })
                                   }
 
                                   // Clear pending query and original model

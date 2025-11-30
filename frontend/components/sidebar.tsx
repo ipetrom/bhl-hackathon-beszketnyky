@@ -1,10 +1,11 @@
 "use client"
 
-import { MessageSquare, FolderOpen, Plus, Trash2, ChevronUp, PanelLeftClose, PanelLeft } from "lucide-react"
+import { MessageSquare, FolderOpen, Plus, Trash2, ChevronUp, PanelLeftClose, PanelLeft, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Chat } from "@/app/page"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface SidebarProps {
   chats: Chat[]
@@ -74,6 +75,15 @@ export function Sidebar({ chats, activeChat, onNewChat, onSelectChat, onDeleteCh
             <FolderOpen className="h-4 w-4" />
             Projects
           </Button>
+          <Link href="/dashboard">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Dashboard
+            </Button>
+          </Link>
         </nav>
 
         {/* Recents */}

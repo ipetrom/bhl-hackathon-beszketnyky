@@ -14,6 +14,7 @@ from database import get_database, ModelDB
 from complexity_agent import get_complexity_agent
 from model_factory import get_model_factory
 from rag.router import router as rag_router, retriever, DEFAULT_SIMILARITY_THRESHOLD
+from savings_tracker import get_savings_tracker
 
 load_dotenv()
 
@@ -413,6 +414,102 @@ async def chat_completion(request: ChatRequest):
         error_details = traceback.format_exc()
         print(f"Error processing chat: {error_details}")
         raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
+
+
+# ============= Savings Endpoints =============
+
+@app.post("/savings/record")
+async def record_savings(
+    original_model_id: str,
+    original_model_name: str,
+    suggested_model_id: str,
+    suggested_model_name: str,
+    cost_saved_input: float,
+    cost_saved_output: float,
+    co2_saved: float,
+    complexity_level: int,
+    query_preview: Optional[str] = None,
+    user_id: str = "default_user"
+):
+    """Record a savings entry when user switches to a cheaper model."""
+    try:
+        tracker = get_savings_tracker()
+        entry_id = tracker.record_savings(
+            original_model_id=original_model_id,
+            original_model_name=original_model_name,
+            suggested_model_id=suggested_model_id,
+            suggested_model_name=suggested_model_name,
+            cost_saved_input=cost_saved_input,
+            cost_saved_output=cost_saved_output,
+            co2_saved=co2_saved,
+            complexity_level=complexity_level,
+            query_preview=query_preview,
+            user_id=user_id
+        )
+        return {"success": True, "id": entry_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error recording savings: {str(e)}")
+
+
+@app.get("/savings/all")
+async def get_all_savings(user_id: str = "default_user"):
+    """Get all savings entries for a user."""
+    try:
+        tracker = get_savings_tracker()
+        entries = tracker.get_all_savings(user_id=user_id)
+        return {
+            "savings": [
+                {
+                    "id": entry.id,
+                    "created_at": entry.created_at.isoformat(),
+                    "original_model_id": entry.original_model_id,
+                    "original_model_name": entry.original_model_name,
+                    "suggested_model_id": entry.suggested_model_id,
+                    "suggested_model_name": entry.suggested_model_name,
+                    "cost_saved_input": entry.cost_saved_input,
+                    "cost_saved_output": entry.cost_saved_output,
+                    "co2_saved": entry.co2_saved,
+                    "complexity_level": entry.complexity_level,
+                    "query_preview": entry.query_preview,
+                }
+                for entry in entries
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching savings: {str(e)}")
+
+
+@app.get("/savings/total")
+async def get_total_savings(user_id: str = "default_user"):
+    """Get total savings for a user."""
+    try:
+        tracker = get_savings_tracker()
+        totals = tracker.get_total_savings(user_id=user_id)
+        return totals
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching total savings: {str(e)}")
+
+
+@app.get("/savings/by-period")
+async def get_savings_by_period(days: int = 30, user_id: str = "default_user"):
+    """Get savings grouped by day."""
+    try:
+        tracker = get_savings_tracker()
+        data = tracker.get_savings_by_period(days=days, user_id=user_id)
+        return {"data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching period savings: {str(e)}")
+
+
+@app.get("/savings/model-stats")
+async def get_model_stats(user_id: str = "default_user"):
+    """Get model switch statistics."""
+    try:
+        tracker = get_savings_tracker()
+        stats = tracker.get_model_switch_stats(user_id=user_id)
+        return {"stats": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching model stats: {str(e)}")
 
 
 # ============= Main =============

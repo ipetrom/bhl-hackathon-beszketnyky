@@ -29,7 +29,7 @@ INSERT INTO model (id, model_name, model_id, provider, complexity_level, task_ty
 (16, 'gpt-3.5-turbo', 'gpt-3.5-turbo', 'OpenAI', 3, '[text_summarization, text_generation]', 0.08, 0.5, 1.5),
 (17, 'gpt-5-nano', 'gpt-5-nano', 'OpenAI', 2, '[code_task, text_summarization, text_generation, explanation_task]', 0.02, 0.05, 0.4),
 (18, 'gpt-5-mini', 'gpt-5-mini', 'OpenAI', 4, '[code_task, text_summarization, text_generation, explanation_task]', 0.04, 0.25, 2),
-(19, 'llama-3.1-8b-instant', 'llama-3.1-8b-instant', 'Groq', 4, '[text_summarization, text_generation]', 0.008, 0.05, 0.08),
-(20, 'llama-4-scout-17b', 'meta-llama/llama-4-scout-17b-16e-instruct', 'Groq', 6, '[text_summarization, text_generation, explanation_task]', 0.017, 0.11, 0.34),
-(21, 'gpt-oss-120b', 'openai/gpt-oss-120b', 'Groq', 8, '[code_task, text_summarization, text_generation, explanation_task]', 0.024, 0.15, 0.6),
+(19, 'llama-3.1-8b-instant', 'llama-3.1-8b-instant', 'Groq', 1, '[text_summarization, text_generation]', 0.008, 0.05, 0.08),
+(20, 'llama-4-scout-17b', 'meta-llama/llama-4-scout-17b-16e-instruct', 'Groq', 5, '[text_summarization, text_generation, explanation_task]', 0.017, 0.11, 0.34),
+(21, 'gpt-oss-120b', 'openai/gpt-oss-120b', 'Groq', 5, '[code_task, text_summarization, text_generation, explanation_task]', 0.024, 0.15, 0.6),
 (22, 'qwen3-32b', 'qwen/qwen3-32b', 'Groq', 7, '[code_task, text_summarization, text_generation, explanation_task]', 0.046, 0.29, 0.59);
