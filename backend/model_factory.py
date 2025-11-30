@@ -42,6 +42,7 @@ class ModelFactory:
         model_id: str,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        provider: Optional[str] = None,
     ) -> Optional[BaseChatModel]:
         """
         Create a LangChain chat model based on model ID.
@@ -50,11 +51,17 @@ class ModelFactory:
             model_id: The model identifier (e.g., "gpt-4o", "claude-3-5-sonnet-20241022")
             temperature: Optional temperature override
             max_tokens: Optional max tokens override
+            provider: Optional provider name (used if model not in config)
             
         Returns:
             BaseChatModel instance or None if model not found or API key missing
         """
         config = get_model_config(model_id)
+        
+        # If model not in config but provider is provided, try to create it directly
+        if not config and provider:
+            return self._create_model_from_provider(model_id, provider, temperature, max_tokens)
+        
         if not config:
             print(f"Error: Model '{model_id}' not found in configuration.")
             return None
@@ -103,6 +110,56 @@ class ModelFactory:
                 
         except Exception as e:
             print(f"Error creating model '{model_id}': {str(e)}")
+            return None
+    
+    def _create_model_from_provider(
+        self,
+        model_id: str,
+        provider: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> Optional[BaseChatModel]:
+        """Create a model directly from provider info when not in config."""
+        temp = temperature if temperature is not None else 0.7
+        max_toks = max_tokens if max_tokens is not None else 4096
+        
+        try:
+            provider_lower = provider.lower()
+            if provider_lower == "anthropic":
+                if not self.anthropic_api_key:
+                    print(f"Error: ANTHROPIC_API_KEY not set. Cannot create {model_id}.")
+                    return None
+                return ChatAnthropic(
+                    model=model_id,
+                    anthropic_api_key=self.anthropic_api_key,
+                    temperature=temp,
+                    max_tokens=max_toks,
+                )
+            elif provider_lower == "openai":
+                if not self.openai_api_key:
+                    print(f"Error: OPENAI_API_KEY not set. Cannot create {model_id}.")
+                    return None
+                return ChatOpenAI(
+                    model=model_id,
+                    openai_api_key=self.openai_api_key,
+                    temperature=temp,
+                    max_tokens=max_toks,
+                )
+            elif provider_lower == "groq":
+                if not self.groq_api_key:
+                    print(f"Error: GROQ_API_KEY not set. Cannot create {model_id}.")
+                    return None
+                return ChatGroq(
+                    model=model_id,
+                    groq_api_key=self.groq_api_key,
+                    temperature=temp,
+                    max_tokens=max_toks,
+                )
+            else:
+                print(f"Error: Unknown provider '{provider}' for model '{model_id}'.")
+                return None
+        except Exception as e:
+            print(f"Error creating model '{model_id}' from provider '{provider}': {str(e)}")
             return None
     
     def create_model_by_complexity(

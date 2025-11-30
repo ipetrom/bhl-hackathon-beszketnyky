@@ -4,20 +4,24 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Plus, ArrowUp, Code, ChevronDown, Search, Check, Loader2 } from "lucide-react"
+import { Plus, ArrowUp, Code, ChevronDown, Search, Check, Loader2, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Chat } from "@/app/page"
 import { cn } from "@/lib/utils"
-import { fetchModels, type Model } from "@/lib/api"
+import { fetchModels, sendChatMessage, type Model } from "@/lib/api"
+import type { Message as ChatMessage, ModelSuggestion } from "@/app/page"
+import { MessageContent } from "@/components/message-content"
 
 interface ChatAreaProps {
   activeChat: Chat | null
-  onSendMessage: (content: string) => void
+  onSendMessage: (userMessage: ChatMessage, assistantMessage: ChatMessage, replaceLast?: number) => void
+  onDeleteChat?: (chatId: string) => void
+  onUpdateChat?: (chatId: string, messages: ChatMessage[]) => void
   sidebarOpen: boolean
 }
 
-export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaProps) {
+export function ChatArea({ activeChat, onSendMessage, onDeleteChat, onUpdateChat, sidebarOpen }: ChatAreaProps) {
   const [input, setInput] = useState("")
   const [models, setModels] = useState<Model[]>([])
   const [selectedModel, setSelectedModel] = useState<Model | null>(null)
@@ -25,8 +29,13 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
   const [modelSearch, setModelSearch] = useState("")
   const [isCodeMode, setIsCodeMode] = useState(false)
   const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const [isSending, setIsSending] = useState(false)
+  const [modelSuggestion, setModelSuggestion] = useState<ModelSuggestion | null>(null)
+  const [pendingQuery, setPendingQuery] = useState<string | null>(null)
+  const [originalModel, setOriginalModel] = useState<Model | null>(null)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const dropdownPortalRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -48,14 +57,20 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const isClickInsideButton = buttonRef.current?.contains(target)
+      const isClickInsideDropdown = dropdownPortalRef.current?.contains(target)
+      
+      if (!isClickInsideButton && !isClickInsideDropdown) {
         setIsModelOpen(false)
         setModelSearch("")
       }
     }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    if (isModelOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isModelOpen])
 
   useEffect(() => {
     if (isModelOpen && searchInputRef.current) {
@@ -79,11 +94,88 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
       model.id.toLowerCase().includes(modelSearch.toLowerCase()),
   )
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (input.trim()) {
-      onSendMessage(input.trim())
-      setInput("")
+    if (!input.trim() || isSending || !selectedModel) return
+
+    const userContent = input.trim()
+    setInput("")
+    setIsSending(true)
+    setModelSuggestion(null)
+
+    try {
+      // Prepare messages for API
+      const messages = activeChat
+        ? [...activeChat.messages.map(msg => ({ role: msg.role, content: msg.content })), { role: "user" as const, content: userContent }]
+        : [{ role: "user" as const, content: userContent }]
+
+      // Send to backend
+      const response = await sendChatMessage({
+        messages,
+        model_id: selectedModel.id,
+        user_selected: true, // User manually selected model
+      })
+
+      if (response) {
+        // Create user and assistant messages
+        const userMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: "user",
+          content: userContent,
+        }
+
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: response.message.content,
+        }
+
+        // Update chat
+        onSendMessage(userMessage, assistantMessage)
+
+        // Show model suggestion if available
+        if (response.model_suggestion) {
+          setModelSuggestion(response.model_suggestion)
+          // Store the query in case user wants to switch models
+          setPendingQuery(userContent)
+          // Store the originally selected model
+          setOriginalModel(selectedModel)
+        }
+      } else {
+        // Fallback error message
+        const userMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: "user",
+          content: userContent,
+        }
+
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Sorry, there was an error processing your request. Please try again.",
+        }
+
+        onSendMessage(userMessage, assistantMessage)
+      }
+    } catch (error) {
+      console.error("Error sending message:", error)
+
+      // Fallback error message
+      const userMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: "user",
+        content: userContent,
+      }
+
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, there was an error processing your request. Please make sure the backend server is running.",
+      }
+
+      onSendMessage(userMessage, assistantMessage)
+    } finally {
+      setIsSending(false)
     }
   }
 
@@ -98,26 +190,260 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
   }
 
   return (
-    <main className={cn("flex-1 flex flex-col", !sidebarOpen && "pl-16")}>
+    <main className={cn("flex-1 flex flex-col h-screen ml-0 transition-all duration-300", sidebarOpen && "ml-72")}>
       {activeChat ? (
         <>
+          {/* Chat Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">{activeChat.title}</h2>
+            {onDeleteChat && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDeleteChat(activeChat.id)}
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                title="Delete chat"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
+          
           {/* Chat Messages */}
           <ScrollArea className="flex-1 p-6">
-            <div className="max-w-3xl mx-auto space-y-6">
+            <div className="max-w-3xl mx-auto space-y-4">
               {activeChat.messages.map((message) => (
                 <div key={message.id} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
                   <div
                     className={cn(
-                      "max-w-[80%] rounded-2xl px-4 py-3",
+                      "max-w-[85%] rounded-2xl px-4 py-3 select-text",
                       message.role === "user"
                         ? "bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 text-white"
-                        : "bg-card text-card-foreground",
+                        : "bg-card text-card-foreground border border-border",
                     )}
                   >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
+                    <MessageContent content={message.content} isUser={message.role === "user"} />
                   </div>
                 </div>
               ))}
+
+              {/* Model Suggestion Alert */}
+              {modelSuggestion && (
+                <div className="mt-4 p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                      <span className="text-lg">💡</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                        Model Suggestion
+                      </h4>
+                      <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                        Cheaper model can handle this task would you like to switch it? Consider using a more efficient model to save costs and reduce CO₂.
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-amber-700 dark:text-amber-300 mb-3">
+                        <div>
+                          <span className="font-semibold">Suggested: </span>
+                          {modelSuggestion.suggested_model.name}
+                        </div>
+                      </div>
+                      {modelSuggestion.savings && (
+                        <div className="flex gap-4 text-xs text-green-700 dark:text-green-400 mb-3">
+                          {modelSuggestion.savings.cost_input_tokens > 0 && (
+                            <div>💰 Save ${modelSuggestion.savings.cost_input_tokens.toFixed(2)}/1K tokens</div>
+                          )}
+                          {modelSuggestion.savings.co2 > 0 && (
+                            <div>🌱 Save {modelSuggestion.savings.co2.toFixed(2)}g CO₂</div>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            const suggested = models.find(m => m.id === modelSuggestion.suggested_model.id)
+                            if (suggested && pendingQuery) {
+                              // Clear the suggestion UI immediately
+                              setModelSuggestion(null)
+                              
+                              // Remove placeholder message immediately (keep user message)
+                              const placeholderText = "Please review the model suggestion below before proceeding with your request."
+                              let messagesWithoutPlaceholder: ChatMessage[] = []
+                              
+                              if (activeChat) {
+                                // Remove only the placeholder message if it exists (keep user message)
+                                const lastMessage = activeChat.messages[activeChat.messages.length - 1]
+                                if (lastMessage.content === placeholderText) {
+                                  // Remove only the placeholder message (keep user message)
+                                  messagesWithoutPlaceholder = activeChat.messages.slice(0, -1)
+                                  if (onUpdateChat) {
+                                    onUpdateChat(activeChat.id, messagesWithoutPlaceholder)
+                                  }
+                                } else {
+                                  messagesWithoutPlaceholder = activeChat.messages
+                                }
+                              }
+                              
+                              // Switch to suggested model
+                              setSelectedModel(suggested)
+                              
+                              // Re-send the query with the new model
+                              setIsSending(true)
+                              
+                              try {
+                                // Prepare messages for API - use all messages without placeholder
+                                // The user message is already in messagesWithoutPlaceholder
+                                const contextMessages = messagesWithoutPlaceholder.map(msg => ({ 
+                                  role: msg.role, 
+                                  content: msg.content 
+                                }))
+                                
+                                // Ensure the pending query is the last message
+                                const lastContextMessage = contextMessages[contextMessages.length - 1]
+                                if (!lastContextMessage || lastContextMessage.role !== "user" || lastContextMessage.content !== pendingQuery) {
+                                  contextMessages.push({ role: "user" as const, content: pendingQuery })
+                                }
+                                
+                                // Send to backend with new model
+                                // Skip suggestion check since user explicitly chose this model
+                                const response = await sendChatMessage({
+                                  messages: contextMessages,
+                                  model_id: suggested.id,
+                                  user_selected: true,
+                                  skip_suggestion_check: true,
+                                })
+                                
+                                if (response) {
+                                  // Create assistant message (user message already exists in chat)
+                                  const assistantMessage: ChatMessage = {
+                                    id: (Date.now() + 1).toString(),
+                                    role: "assistant",
+                                    content: response.message.content,
+                                  }
+                                  
+                                  // Add the assistant message to the chat (user message is already there)
+                                  const updatedMessages = [...messagesWithoutPlaceholder, assistantMessage]
+                                  if (onUpdateChat) {
+                                    onUpdateChat(activeChat!.id, updatedMessages)
+                                  }
+                                  
+                                  // Clear pending query and original model
+                                  // Don't show suggestions again - user explicitly chose this model
+                                  setPendingQuery(null)
+                                  setOriginalModel(null)
+                                }
+                              } catch (error) {
+                                console.error("Error sending message with new model:", error)
+                              } finally {
+                                setIsSending(false)
+                              }
+                            }
+                          }}
+                          disabled={isSending}
+                          className="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSending ? "Switching..." : `Switch to ${modelSuggestion.suggested_model.name}`}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (originalModel && pendingQuery) {
+                              // Clear the suggestion UI immediately
+                              setModelSuggestion(null)
+                              
+                              // Remove placeholder message immediately (keep user message)
+                              const placeholderText = "Please review the model suggestion below before proceeding with your request."
+                              let messagesWithoutPlaceholder: ChatMessage[] = []
+                              
+                              if (activeChat) {
+                                // Remove only the placeholder message if it exists (keep user message)
+                                const lastMessage = activeChat.messages[activeChat.messages.length - 1]
+                                if (lastMessage.content === placeholderText) {
+                                  // Remove only the placeholder message (keep user message)
+                                  messagesWithoutPlaceholder = activeChat.messages.slice(0, -1)
+                                  if (onUpdateChat) {
+                                    onUpdateChat(activeChat.id, messagesWithoutPlaceholder)
+                                  }
+                                } else {
+                                  messagesWithoutPlaceholder = activeChat.messages
+                                }
+                              }
+                              
+                              // Switch back to original model
+                              setSelectedModel(originalModel)
+                              
+                              // Generate response with original model
+                              setIsSending(true)
+                              
+                              try {
+                                // Prepare messages for API - use all messages without placeholder
+                                const contextMessages = messagesWithoutPlaceholder.map(msg => ({ 
+                                  role: msg.role, 
+                                  content: msg.content 
+                                }))
+                                
+                                // Ensure the pending query is the last message
+                                const lastContextMessage = contextMessages[contextMessages.length - 1]
+                                if (!lastContextMessage || lastContextMessage.role !== "user" || lastContextMessage.content !== pendingQuery) {
+                                  contextMessages.push({ role: "user" as const, content: pendingQuery })
+                                }
+                                
+                                // Send to backend with original model
+                                // Skip suggestion check since user explicitly chose to keep current model
+                                const response = await sendChatMessage({
+                                  messages: contextMessages,
+                                  model_id: originalModel.id,
+                                  user_selected: true,
+                                  skip_suggestion_check: true,
+                                })
+                                
+                                if (response) {
+                                  // Create assistant message (user message already exists in chat)
+                                  const assistantMessage: ChatMessage = {
+                                    id: (Date.now() + 1).toString(),
+                                    role: "assistant",
+                                    content: response.message.content,
+                                  }
+                                  
+                                  // Add the assistant message to the chat (user message is already there)
+                                  const updatedMessages = [...messagesWithoutPlaceholder, assistantMessage]
+                                  if (onUpdateChat) {
+                                    onUpdateChat(activeChat!.id, updatedMessages)
+                                  }
+                                  
+                                  // Clear pending query and original model
+                                  // Don't show suggestions again - user explicitly chose to keep current model
+                                  setPendingQuery(null)
+                                  setOriginalModel(null)
+                                }
+                              } catch (error) {
+                                console.error("Error sending message with original model:", error)
+                              } finally {
+                                setIsSending(false)
+                              }
+                            } else {
+                              // Fallback: just clear the suggestion
+                              setModelSuggestion(null)
+                              setPendingQuery(null)
+                              setOriginalModel(null)
+                            }
+                          }}
+                          disabled={isSending}
+                          className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-amber-900 dark:text-amber-100 border border-amber-200 dark:border-amber-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Keep Current
+                        </button>
+                        <button
+                          onClick={() => {
+                            // TODO: Implement logic to disable suggestions
+                          }}
+                          className="px-3 py-1.5 text-xs font-medium bg-transparent hover:bg-amber-100/50 dark:hover:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded-lg transition-colors"
+                        >
+                          Don't show me suggestions anymore
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </ScrollArea>
 
@@ -135,10 +461,10 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || isSending}
                   className="absolute right-3 h-9 w-9 rounded-lg bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 text-white hover:opacity-90 disabled:opacity-50 border-0"
                 >
-                  <ArrowUp className="h-5 w-5" />
+                  {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
                 </Button>
               </div>
             </form>
@@ -216,6 +542,7 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
 
                         {isModelOpen && dropdownPosition && typeof window !== "undefined" && createPortal(
                           <div
+                            ref={dropdownPortalRef}
                             className="fixed w-64 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50"
                             style={{
                               top: `${dropdownPosition.top}px`,
@@ -252,7 +579,7 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-foreground">{model.name}</p>
                                       <p className="text-xs text-muted-foreground">
-                                        {model.provider} • Level {model.complexity_level} • CO₂: {model.co2}g
+                                        {model.provider} • CO₂: {model.co2}g
                                       </p>
                                     </div>
                                     {selectedModel?.id === model.id && <Check className="h-4 w-4 text-primary flex-shrink-0 ml-2" />}
@@ -269,10 +596,10 @@ export function ChatArea({ activeChat, onSendMessage, sidebarOpen }: ChatAreaPro
                       <Button
                         type="submit"
                         size="icon"
-                        disabled={!input.trim()}
+                        disabled={!input.trim() || isSending}
                         className="h-9 w-9 rounded-lg bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 text-white hover:opacity-90 disabled:opacity-50 border-0"
                       >
-                        <ArrowUp className="h-5 w-5" />
+                        {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
                       </Button>
                     </div>
                   </div>

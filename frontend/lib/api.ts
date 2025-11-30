@@ -24,6 +24,7 @@ export interface ChatRequest {
   messages: Message[]
   model_id?: string
   user_selected?: boolean
+  skip_suggestion_check?: boolean
 }
 
 export interface ChatResponse {

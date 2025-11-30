@@ -17,6 +17,23 @@ export interface Message {
   content: string
 }
 
+export interface ModelSuggestion {
+  suggested_model: {
+    id: string
+    name: string
+    complexity_level: number
+    co2: number
+    cost_input_tokens: number
+    cost_output_tokens: number
+  }
+  reason: string
+  savings: {
+    cost_input_tokens: number
+    cost_output_tokens?: number
+    co2: number
+  }
+}
+
 const initialChats: Chat[] = []
 
 export default function Home() {
@@ -39,64 +56,48 @@ export default function Home() {
     setActiveChat(chat)
   }
 
-  const sendMessage = (content: string) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content,
-    }
-
+  const sendMessage = (userMessage: Message, assistantMessage: Message, replaceLast?: number) => {
     if (activeChat) {
+      // If replaceLast is specified, remove that many messages from the end
+      const existingMessages = replaceLast && replaceLast > 0
+        ? activeChat.messages.slice(0, -replaceLast)
+        : activeChat.messages
+      
       const updatedChat = {
         ...activeChat,
-        messages: [...activeChat.messages, newMessage],
+        messages: [...existingMessages, userMessage, assistantMessage],
       }
       setChats((prev) => prev.map((chat) => (chat.id === activeChat.id ? updatedChat : chat)))
       setActiveChat(updatedChat)
-
-      // Simulate assistant response
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: `I'll help you with: "${content}". This is a mocked response demonstrating the chat functionality.`,
-        }
-        const chatWithResponse = {
-          ...updatedChat,
-          messages: [...updatedChat.messages, assistantMessage],
-        }
-        setChats((prev) => prev.map((chat) => (chat.id === activeChat.id ? chatWithResponse : chat)))
-        setActiveChat(chatWithResponse)
-      }, 1000)
     } else {
       const newChat: Chat = {
         id: Date.now().toString(),
-        title: content.slice(0, 40) + (content.length > 40 ? "..." : ""),
-        messages: [newMessage],
+        title: userMessage.content.slice(0, 40) + (userMessage.content.length > 40 ? "..." : ""),
+        messages: [userMessage, assistantMessage],
         createdAt: new Date(),
       }
       setChats((prev) => [newChat, ...prev])
       setActiveChat(newChat)
-
-      // Simulate assistant response
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: `I'll help you with: "${content}". This is a mocked response demonstrating the chat functionality.`,
-        }
-        const chatWithResponse = {
-          ...newChat,
-          messages: [...newChat.messages, assistantMessage],
-        }
-        setChats((prev) => prev.map((chat) => (chat.id === newChat.id ? chatWithResponse : chat)))
-        setActiveChat(chatWithResponse)
-      }, 1000)
     }
   }
 
+  const updateChatMessages = (chatId: string, messages: Message[]) => {
+    setChats((prev) =>
+      prev.map((chat) => {
+        if (chat.id === chatId) {
+          const updatedChat = { ...chat, messages }
+          if (activeChat?.id === chatId) {
+            setActiveChat(updatedChat)
+          }
+          return updatedChat
+        }
+        return chat
+      })
+    )
+  }
+
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen relative">
       <Sidebar
         chats={chats}
         activeChat={activeChat}
@@ -106,7 +107,7 @@ export default function Home() {
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
-      <ChatArea activeChat={activeChat} onSendMessage={sendMessage} sidebarOpen={sidebarOpen} />
+      <ChatArea activeChat={activeChat} onSendMessage={sendMessage} onDeleteChat={deleteChat} onUpdateChat={updateChatMessages} sidebarOpen={sidebarOpen} />
     </div>
   )
 }

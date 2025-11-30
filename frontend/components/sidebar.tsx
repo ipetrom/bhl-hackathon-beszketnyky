@@ -35,7 +35,7 @@ export function Sidebar({ chats, activeChat, onNewChat, onSelectChat, onDeleteCh
 
       <aside
         className={cn(
-          "flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
+          "flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 h-screen fixed left-0 top-0 z-40",
           isOpen ? "w-72" : "w-0 overflow-hidden",
         )}
       >
