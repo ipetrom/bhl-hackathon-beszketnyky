@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
 import javax.swing.border.EmptyBorder
+import javax.swing.text.html.HTMLEditorKit
 
 class GreenAssistantToolWindowFactory : ToolWindowFactory {
 
@@ -21,7 +22,9 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val rootPanel = JPanel(BorderLayout())
         rootPanel.border = EmptyBorder(0, 0, 0, 0)
+        rootPanel.isOpaque = true
 
+        // JetBrains-style palette
         val jetbrainsBlue = Color(0x4A90E2)
         val jetbrainsBlueHover = Color(0x3B7FD9)
         val jetbrainsBackground = Color(0xFFFFFF)
@@ -33,36 +36,47 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
         val headerPanel = JPanel(BorderLayout()).apply {
             border = EmptyBorder(12, 16, 8, 16)
             background = jetbrainsBackground
+            isOpaque = true
         }
 
         val titleLabel = JLabel("EcoMind").apply {
             foreground = jetbrainsText
             font = font.deriveFont(java.awt.Font.BOLD, 14f)
+            isOpaque = true
+            background = jetbrainsBackground
         }
 
         val subtitleLabel = JLabel("Chat with EcoMind about this project").apply {
             foreground = jetbrainsTextSecondary
             font = font.deriveFont(12f)
+            isOpaque = true
+            background = jetbrainsBackground
         }
 
         val titleBox = JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            isOpaque = false
+            isOpaque = true
+            background = jetbrainsBackground
             add(titleLabel)
             add(subtitleLabel)
         }
 
         val statusDot = JLabel("●").apply {
             foreground = Color(0x4CAF50)
+            isOpaque = true
+            background = jetbrainsBackground
         }
 
         val statusLabel = JLabel("Ready").apply {
             foreground = jetbrainsTextSecondary
             border = EmptyBorder(0, 4, 0, 0)
+            isOpaque = true
+            background = jetbrainsBackground
         }
 
         val statusPanel = JPanel(BorderLayout()).apply {
-            isOpaque = false
+            isOpaque = true
+            background = jetbrainsBackground
             add(statusDot, BorderLayout.WEST)
             add(statusLabel, BorderLayout.CENTER)
         }
@@ -73,19 +87,27 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
         val chatArea = JTextPane().apply {
             isEditable = false
             contentType = "text/html"
+            editorKit = HTMLEditorKit()
             background = jetbrainsChatBackground
+            foreground = jetbrainsText // force dark text on mac too
             border = EmptyBorder(16, 16, 16, 16)
+            isOpaque = true
+            putClientProperty("JEditorPane.honorDisplayProperties", true)
         }
 
         val scrollPane = JScrollPane(chatArea).apply {
             border = BorderFactory.createMatteBorder(0, 0, 1, 0, jetbrainsBorder)
             verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
             background = jetbrainsBackground
+            isOpaque = true
+            viewport.isOpaque = true
+            viewport.background = jetbrainsChatBackground
         }
 
         val inputPanel = JPanel(BorderLayout(10, 0)).apply {
             border = EmptyBorder(8, 16, 4, 16)
             background = jetbrainsBackground
+            isOpaque = true
         }
 
         val inputField = JTextField().apply {
@@ -96,6 +118,7 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
             font = font.deriveFont(13f)
             background = jetbrainsBackground
             foreground = jetbrainsText
+            isOpaque = true
             toolTipText = "Type your message and press Enter or click Send"
         }
 
@@ -110,14 +133,11 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
             cursor = java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR)
             addMouseListener(object : java.awt.event.MouseAdapter() {
                 override fun mouseEntered(e: java.awt.event.MouseEvent) {
-                    if (isEnabled) {
-                        background = jetbrainsBlueHover
-                    }
+                    if (isEnabled) background = jetbrainsBlueHover
                 }
+
                 override fun mouseExited(e: java.awt.event.MouseEvent) {
-                    if (isEnabled) {
-                        background = jetbrainsBlue
-                    }
+                    if (isEnabled) background = jetbrainsBlue
                 }
             })
         }
@@ -136,6 +156,7 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
 
         val bottomPanel = JPanel(BorderLayout()).apply {
             background = jetbrainsBackground
+            isOpaque = true
             add(inputPanel, BorderLayout.CENTER)
             add(hintLabel, BorderLayout.SOUTH)
         }
@@ -160,131 +181,91 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
             }
         }
 
-        fun escapeHtml(text: String): String {
-            return text
+        fun escapeHtml(text: String): String =
+            text
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;")
                 .replace("\n", "<br>")
-        }
 
         fun rebuildChatArea() {
             SwingUtilities.invokeLater {
-                try {
-                    val messagesHtml = messages.joinToString("") { (role, content) ->
-                        val escapedContent = escapeHtml(content)
-                        if (escapedContent.isEmpty()) return@joinToString ""
-                        when (role) {
-                            "user" -> """
-                                <div style="margin-bottom: 16px; text-align: right;">
-                                    <div style="display: inline-block; max-width: 75%; background: #4A90E2; color: #FFFFFF !important; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);">
-                                        <span style="color: #FFFFFF !important;">$escapedContent</span>
-                                    </div>
-                                </div>
-                            """.trimIndent()
-                            "assistant" -> """
-                                <div style="margin-bottom: 16px; text-align: left;">
-                                    <div style="display: inline-block; max-width: 75%; background: #FFFFFF; color: #1A1A1A !important; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; border: 1px solid #D0D0D0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                        <span style="color: #1A1A1A !important;">$escapedContent</span>
-                                    </div>
-                                </div>
-                            """.trimIndent()
-                            else -> ""
-                        }
-                    }
+                val messagesHtml = messages.joinToString("") { (role, content) ->
+                    val escapedContent = escapeHtml(content)
+                    if (escapedContent.isEmpty()) return@joinToString ""
+                    when (role) {
+                        "user" -> """
+                    <div style="margin-bottom: 16px; text-align: right;">
+                        <div style="display: inline-block; max-width: 75%; background: #4A90E2; color: #FFFFFF; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);">
+                            <span style="color: #FFFFFF;">$escapedContent</span>
+                        </div>
+                    </div>
+                """.trimIndent()
 
-                    val streamingHtml = if (currentAssistantContent.isNotEmpty()) {
-                        val escapedContent = escapeHtml(currentAssistantContent.toString())
-                        if (escapedContent.isNotEmpty()) {
-                            """
-                                <div style="margin-bottom: 16px; text-align: left;">
-                                    <div style="display: inline-block; max-width: 75%; background: #FFFFFF; color: #1A1A1A !important; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; border: 1px solid #D0D0D0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                        <span style="color: #1A1A1A !important;">$escapedContent</span><span style="opacity: 0.6; color: #4A90E2;">▊</span>
-                                    </div>
-                                </div>
-                            """.trimIndent()
-                        } else ""
+                        "assistant" -> """
+                    <div style="margin-bottom: 16px; text-align: left;">
+                        <div style="display: inline-block; max-width: 75%; background: #FFFFFF; color: #1A1A1A; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; border: 1px solid #D0D0D0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <span style="color: #1A1A1A;">$escapedContent</span>
+                        </div>
+                    </div>
+                """.trimIndent()
+
+                        else -> ""
+                    }
+                }
+
+                val streamingHtml = if (currentAssistantContent.isNotEmpty()) {
+                    val escapedContent = escapeHtml(currentAssistantContent.toString())
+                    if (escapedContent.isNotEmpty()) {
+                        """
+                    <div style="margin-bottom: 16px; text-align: left;">
+                        <div style="display: inline-block; max-width: 75%; background: #FFFFFF; color: #1A1A1A; padding: 12px 18px; border-radius: 20px; word-wrap: break-word; border: 1px solid #D0D0D0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <span style="color: #1A1A1A;">$escapedContent</span><span style="opacity: 0.6; color: #4A90E2;">▊</span>
+                        </div>
+                    </div>
+                """.trimIndent()
                     } else ""
+                } else ""
 
-                    val bodyContent = when {
-                        messagesHtml.isEmpty() && streamingHtml.isEmpty() -> {
-                            """
-                                <div style="text-align: center; padding: 60px 20px;">
-                                    <div style="font-size: 24px; color: #4A90E2; margin-bottom: 12px; font-weight: 500;">💬</div>
-                                    <h2 style="color: #1A1A1A; margin-bottom: 8px; font-size: 18px; font-weight: 500;">Hi! I'm EcoMind</h2>
-                                    <p style="color: #4A4A4A; font-size: 14px;">How can I help you with your code today?</p>
-                                </div>
-                            """.trimIndent()
-                        }
-                        else -> messagesHtml + streamingHtml
-                    }
+                val bodyContent = when {
+                    messagesHtml.isEmpty() && streamingHtml.isEmpty() -> """
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 24px; color: #4A90E2; margin-bottom: 12px; font-weight: 500;">💬</div>
+                    <h2 style="color: #1A1A1A; margin-bottom: 8px; font-size: 18px; font-weight: 500;">Hi! I'm EcoMind</h2>
+                    <p style="color: #4A4A4A; font-size: 14px;">How can I help you with your code today?</p>
+                </div>
+            """.trimIndent()
 
-                    val htmlContent = """
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="UTF-8">
-                            <style type="text/css">
-                                body {
-                                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Mono', 'Consolas', monospace;
-                                    font-size: 13px;
-                                    line-height: 1.6;
-                                    margin: 0;
-                                    padding: 0;
-                                    color: #1A1A1A;
-                                    background: #F5F5F5;
-                                }
-                                p, div, span {
-                                    color: inherit;
-                                }
-                                code {
-                                    font-family: 'JetBrains Mono', 'Consolas', monospace;
-                                    background: #E8E8E8;
-                                    padding: 2px 6px;
-                                    border-radius: 3px;
-                                    font-size: 12px;
-                                }
-                                pre {
-                                    background: #E8E8E8;
-                                    padding: 12px;
-                                    border-radius: 6px;
-                                    overflow-x: auto;
-                                    border: 1px solid #D0D0D0;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            $bodyContent
-                        </body>
-                        </html>
-                    """.trimIndent()
+                    else -> messagesHtml + streamingHtml
+                }
 
-                    if (chatArea.editorKit !is javax.swing.text.html.HTMLEditorKit) {
-                        chatArea.contentType = "text/html"
-                    }
+                // Swing's HTMLEditorKit CSS parser is very limited and breaks on many properties
+                // Solution: Remove stylesheet entirely and use only inline styles
+                val htmlContent = """
+            <html>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Mono', 'Consolas', monospace; font-size: 13px; margin: 0; padding: 0; color: #1A1A1A; background-color: #F5F5F5;">
+                $bodyContent
+            </body>
+            </html>
+        """.trimIndent()
 
+                try {
+                    // Create a fresh document to avoid CSS parsing issues
+                    val editorKit = chatArea.editorKit as? HTMLEditorKit ?: HTMLEditorKit()
+                    val doc = editorKit.createDefaultDocument()
+                    chatArea.editorKit = editorKit
+                    chatArea.document = doc
                     chatArea.text = htmlContent
-
-                    SwingUtilities.invokeLater {
-                        try {
-                            chatArea.caretPosition = chatArea.document.length
-                        } catch (_: Exception) {
-                        }
-                    }
-                } catch (_: Exception) {
-                    try {
-                        chatArea.contentType = "text/plain"
-                        val plainText = messages.joinToString("\n\n") { (role, content) ->
-                            "${if (role == "user") "You" else "EcoMind"}: $content"
-                        } + if (currentAssistantContent.isNotEmpty()) "\n\nEcoMind: $currentAssistantContent" else ""
-                        chatArea.text = plainText
-                    } catch (_: Exception) {
-                    }
+                    chatArea.caretPosition = chatArea.document.length
+                } catch (e: Exception) {
+                    // Don't let Swing kill the plugin / IDE
+                    e.printStackTrace()
                 }
             }
         }
+
 
         fun appendUserMessage(text: String) {
             messages.add("user" to text)
@@ -333,36 +314,29 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
             val envPath = System.getenv("CLAUDE_CLI_PATH")
             if (!envPath.isNullOrBlank()) {
                 val f = File(envPath)
-                if (f.exists() && f.isFile) {
-                    return f.absolutePath
-                }
+                if (f.exists() && f.isFile) return f.absolutePath
             }
 
             val isWindows = System.getProperty("os.name").lowercase().contains("windows")
             val home = System.getProperty("user.home")
-            
+
             if (home != null) {
                 val candidates = mutableListOf<File>()
-                
-                // Platform-specific candidates
+
                 if (isWindows) {
                     candidates.add(File(home, ".local/bin/claude.exe"))
                     candidates.add(File(home, ".local/bin/claude"))
                 } else {
-                    // macOS/Linux: check common installation locations
                     candidates.add(File(home, ".local/bin/claude"))
                     candidates.add(File("/usr/local/bin/claude"))
                     candidates.add(File(home, "bin/claude"))
-                    candidates.add(File("/opt/homebrew/bin/claude")) // Homebrew on Apple Silicon
+                    candidates.add(File("/opt/homebrew/bin/claude"))
                 }
-                
+
                 val found = candidates.firstOrNull { it.exists() && it.isFile && it.canExecute() }
-                if (found != null) {
-                    return found.absolutePath
-                }
+                if (found != null) return found.absolutePath
             }
 
-            // Fallback: assume it's in PATH
             return "claude"
         }
 
@@ -409,28 +383,25 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                         }
                     }
 
-                    // Ensure PATH includes common installation directories
                     val isWindows = System.getProperty("os.name").lowercase().contains("windows")
                     val pathKey = if (isWindows) "Path" else "PATH"
                     val currentPath = env[pathKey] ?: env["PATH"] ?: ""
                     val pathSeparator = if (isWindows) ";" else ":"
                     val home = System.getProperty("user.home")
-                    
+
                     val pathsToAdd = mutableListOf<String>()
-                    
+
                     if (home != null) {
-                        // Add ~/.local/bin
                         val localBinPath = File(home, ".local/bin")
                         if (localBinPath.exists() && localBinPath.isDirectory) {
                             pathsToAdd.add(localBinPath.absolutePath)
                         }
-                        
-                        // On macOS/Linux, also check other common locations
+
                         if (!isWindows) {
                             val commonPaths = listOf(
                                 File(home, "bin"),
                                 File("/usr/local/bin"),
-                                File("/opt/homebrew/bin") // Homebrew on Apple Silicon
+                                File("/opt/homebrew/bin")
                             )
                             commonPaths.forEach { path ->
                                 if (path.exists() && path.isDirectory) {
@@ -439,11 +410,10 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                             }
                         }
                     }
-                    
-                    // Add paths that aren't already in PATH
+
                     val existingPaths = currentPath.split(pathSeparator).toSet()
                     val newPaths = pathsToAdd.filter { it !in existingPaths }
-                    
+
                     if (newPaths.isNotEmpty()) {
                         val updatedPath = if (currentPath.isEmpty()) {
                             newPaths.joinToString(pathSeparator)
@@ -465,9 +435,7 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
                         try {
                             while (true) {
                                 val readCount = reader.read(buffer)
-                                if (readCount < 0) {
-                                    break
-                                }
+                                if (readCount < 0) break
 
                                 val chunk = String(buffer, 0, readCount)
                                 hasReceivedOutput.set(true)
@@ -539,33 +507,7 @@ class GreenAssistantToolWindowFactory : ToolWindowFactory {
         val content = contentFactory.createContent(rootPanel, "", false)
         toolWindow.contentManager.addContent(content)
 
-        SwingUtilities.invokeLater {
-            chatArea.text = """
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <style type="text/css">
-                        body {
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'JetBrains Mono', 'Consolas', monospace;
-                            font-size: 13px;
-                            line-height: 1.6;
-                            margin: 0;
-                            padding: 0;
-                            color: #1A1A1A;
-                            background: #F5F5F5;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div style="text-align: center; padding: 60px 20px;">
-                        <div style="font-size: 24px; color: #4A90E2; margin-bottom: 12px; font-weight: 500;">💬</div>
-                        <h2 style="color: #1A1A1A; margin-bottom: 8px; font-size: 18px; font-weight: 500;">Hi! I'm EcoMind</h2>
-                        <p style="color: #4A4A4A; font-size: 14px;">How can I help you with your code today?</p>
-                    </div>
-                </body>
-                </html>
-            """.trimIndent()
-        }
+        // Initial welcome screen (same template as later, no special path)
+        rebuildChatArea()
     }
 }
